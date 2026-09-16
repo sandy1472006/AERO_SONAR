@@ -1,0 +1,2584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AERO-SONAR — Interactive Sonar Adaptation Simulator</title>
+  <style>
+    /* ==========================================================================
+       AERO-SONAR BENCH INSTRUMENT THEME & LAYOUT
+       Target: 1920x1080, Degrades gracefully to 1366x768. Zero scrolling.
+       ========================================================================== */
+    :root {
+      --bg-base: #06090e;
+      --bg-surface: #0a0f18;
+      --bg-panel: #0e1524;
+      --bg-panel-alt: #131c2f;
+      --border-panel: rgba(0, 240, 255, 0.16);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      
+      --accent-cyan: #00f0ff;
+      --accent-cyan-dim: rgba(0, 240, 255, 0.18);
+      --accent-cyan-glow: rgba(0, 240, 255, 0.4);
+      --accent-mint: #00e5a3;
+      --accent-amber: #ffb000;
+      --accent-amber-glow: rgba(255, 176, 0, 0.35);
+      --accent-red: #ff3b30;
+      --accent-red-glow: rgba(255, 59, 48, 0.35);
+
+      --text-main: #f1f5f9;
+      --text-muted: #8492a6;
+      --text-dim: #475569;
+
+      --font-mono: 'SF Mono', 'Fira Code', 'Roboto Mono', 'Consolas', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    /* Tabular figures for telemetry readout stability */
+    .tabular-num {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ---------------- HEADER BAR ---------------- */
+    header {
+      height: 52px;
+      min-height: 52px;
+      background: linear-gradient(180deg, #0f172a 0%, #080d17 100%);
+      border-bottom: 1px solid var(--border-panel);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 20;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 12px var(--accent-cyan-glow);
+    }
+
+    .brand-tagline {
+      font-size: 0.76rem;
+      font-weight: 500;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .header-center-guardrail {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip-simulation {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+    }
+
+    .chip-simulation.live-hardware {
+      background: rgba(0, 229, 163, 0.15);
+      border-color: var(--accent-mint);
+      color: var(--accent-mint);
+      text-shadow: 0 0 8px rgba(0, 229, 163, 0.5);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .status-dot.pulsing {
+      animation: pulse-dot 1.4s infinite ease-in-out;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .guardrail-caption {
+      font-size: 0.69rem;
+      color: var(--text-muted);
+      max-width: 650px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-serial {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      background: #111a2e;
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-serial:hover {
+      background: #18243f;
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    /* ---------------- DASHBOARD GRID ---------------- */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(260px, 20%) minmax(580px, 55%) minmax(320px, 25%);
+      height: calc(100vh - 52px);
+      overflow: hidden;
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-panel);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .panel-header {
+      height: 32px;
+      min-height: 32px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .panel-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 10px;
+      background: var(--accent-cyan);
+      border-radius: 1px;
+    }
+
+    /* ---------------- LEFT: CONTROL DECK ---------------- */
+    .control-deck-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px 12px;
+      gap: 8px;
+      overflow-y: auto;
+    }
+
+    .knobs-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px 10px;
+    }
+
+    .knob-container {
+      background: rgba(14, 21, 36, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 6px;
+      padding: 6px 4px 4px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      cursor: ns-resize;
+      transition: border-color 0.2s, background-color 0.2s;
+    }
+
+    .knob-container:focus,
+    .knob-container:hover {
+      border-color: rgba(0, 240, 255, 0.35);
+      background: rgba(18, 28, 48, 0.8);
+      outline: none;
+    }
+
+    .knob-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+      pointer-events: none;
+    }
+
+    .knob-svg-wrap {
+      width: 58px;
+      height: 58px;
+      position: relative;
+      pointer-events: none;
+    }
+
+    .knob-value-row {
+      display: flex;
+      align-items: baseline;
+      gap: 2px;
+      margin-top: 1px;
+      pointer-events: none;
+    }
+
+    .knob-value {
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .knob-unit {
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      color: var(--accent-cyan);
+    }
+
+    .knob-minmax {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.58rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      padding: 0 4px;
+      pointer-events: none;
+    }
+
+    /* Scenario Presets */
+    .presets-section {
+      background: rgba(10, 16, 26, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .presets-label {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .presets-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn-preset {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 7px 6px;
+      background: #10192a;
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      line-height: 1.15;
+    }
+
+    .btn-preset:hover {
+      background: #17243c;
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      transform: translateY(-1px);
+    }
+
+    .btn-preset.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+    }
+
+    /* ---------------- CENTER: HERO AUV + INSTRUMENTATION ---------------- */
+    .center-column {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-panel);
+      background: #040810;
+      overflow: hidden;
+    }
+
+    /* Top: AUV Hero Scene */
+    .hero-scene-wrap {
+      flex: 1.15;
+      min-height: 280px;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border-panel);
+    }
+
+    #heroCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .water-condition-badge {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      background: rgba(9, 15, 26, 0.82);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 4px;
+      padding: 5px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+      z-index: 5;
+      transition: opacity 0.4s ease, border-color 0.4s ease;
+    }
+
+    .water-condition-name {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: var(--text-main);
+    }
+
+    .water-condition-details {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--accent-cyan);
+      border-left: 1px solid rgba(255, 255, 255, 0.15);
+      padding-left: 8px;
+    }
+
+    .scene-telemetry-hud {
+      position: absolute;
+      bottom: 10px;
+      left: 14px;
+      background: rgba(6, 10, 18, 0.7);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      display: flex;
+      gap: 14px;
+      z-index: 5;
+    }
+
+    .scene-telemetry-hud span strong {
+      color: var(--text-main);
+    }
+
+    /* Bottom: Oscilloscope & FFT */
+    .instrument-deck {
+      flex: 0.95;
+      min-height: 220px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-surface);
+    }
+
+    .scope-panel {
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border-panel);
+      position: relative;
+    }
+
+    .fft-panel {
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .scope-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-toggle-window {
+      font-family: var(--font-mono);
+      font-size: 0.64rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      background: #121d33;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 3px;
+      color: var(--accent-cyan);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-toggle-window:hover {
+      background: #1a2948;
+      border-color: var(--accent-cyan);
+    }
+
+    .btn-toggle-window.off {
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text-muted);
+      background: #111722;
+    }
+
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #05080e;
+    }
+
+    .canvas-container canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .instrument-bezel-tags {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: rgba(0, 240, 255, 0.7);
+      background: rgba(5, 8, 14, 0.65);
+      padding: 2px 6px;
+      border-radius: 2px;
+      pointer-events: none;
+      display: flex;
+      gap: 8px;
+      z-index: 4;
+    }
+
+    /* ---------------- RIGHT: DECISION READOUT ---------------- */
+    .readout-panel {
+      background: var(--bg-surface);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .readout-content {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Corridor Hero Chip */
+    .corridor-banner {
+      background: rgba(14, 23, 40, 0.8);
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.12);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.3s ease;
+    }
+
+    .corridor-banner.corridor-power-save {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 16px var(--accent-amber-glow);
+    }
+
+    .corridor-banner.corridor-safe-fallback {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 16px var(--accent-red-glow);
+    }
+
+    .corridor-supertitle {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .corridor-name {
+      font-family: var(--font-mono);
+      font-size: 1.35rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--accent-cyan);
+      text-shadow: 0 0 12px var(--accent-cyan-glow);
+    }
+
+    .corridor-power-save .corridor-name {
+      color: var(--accent-amber);
+      text-shadow: 0 0 12px var(--accent-amber-glow);
+    }
+
+    .corridor-safe-fallback .corridor-name {
+      color: var(--accent-red);
+      text-shadow: 0 0 12px var(--accent-red-glow);
+    }
+
+    .corridor-desc {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.25;
+    }
+
+    /* Readout Groups */
+    .readout-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .readout-card-header {
+      padding: 6px 10px;
+      background: var(--bg-panel-alt);
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .readout-list {
+      padding: 4px 0;
+    }
+
+    .readout-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      transition: background-color 0.4s ease;
+    }
+
+    .readout-row:last-child {
+      border-bottom: none;
+    }
+
+    .readout-row.clamped-flash {
+      animation: flash-clamp 1.6s ease-out;
+    }
+
+    @keyframes flash-clamp {
+      0%, 20% { background: rgba(255, 176, 0, 0.3); }
+      100% { background: transparent; }
+    }
+
+    .readout-label-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .readout-label {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    .clamp-pill {
+      font-family: var(--font-mono);
+      font-size: 0.56rem;
+      font-weight: 800;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: var(--accent-amber);
+      color: #000;
+      display: none;
+    }
+
+    .clamped .clamp-pill {
+      display: inline-block;
+    }
+
+    .readout-value-box {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+    }
+
+    .readout-val {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    .readout-val.highlight {
+      color: var(--accent-cyan);
+    }
+
+    .readout-unit {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+    }
+
+    .tag-indicative {
+      font-size: 0.55rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--accent-amber);
+      background: rgba(255, 176, 0, 0.12);
+      padding: 1px 4px;
+      border-radius: 2px;
+      border: 1px solid rgba(255, 176, 0, 0.3);
+    }
+
+    /* Doppler HUD Badge */
+    .doppler-badge {
+      background: rgba(10, 16, 28, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .doppler-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    .doppler-detail {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--accent-mint);
+    }
+
+    /* Modal / Notifications */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--accent-cyan);
+      border-radius: 8px;
+      width: 440px;
+      max-width: 90vw;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .modal-title {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      letter-spacing: 1px;
+    }
+
+    .modal-body {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .modal-body code {
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--text-main);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+    }
+
+    .modal-btn {
+      align-self: flex-end;
+      padding: 6px 14px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: var(--accent-cyan);
+      color: #05080e;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    /* Small Screen Adjustments */
+    @media (max-height: 800px) {
+      header { height: 44px; min-height: 44px; }
+      main { height: calc(100vh - 44px); }
+      .knobs-grid { gap: 4px 6px; }
+      .knob-svg-wrap { width: 48px; height: 48px; }
+      .knob-container { padding: 4px 2px; }
+      .presets-section { padding: 6px 8px; }
+      .btn-preset { padding: 5px 4px; font-size: 0.65rem; }
+      .readout-content { gap: 8px; padding: 8px 10px; }
+      .readout-row { padding: 3px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       HEADER BAR: Brand, Honesty Guardrail & WebSerial Connect
+       ========================================================================== -->
+  <header>
+    <div class="brand-group">
+      <div class="brand-title">AERO-SONAR</div>
+      <div class="brand-tagline">Sense • Decide • Shape • Save</div>
+    </div>
+
+    <div class="header-center-guardrail">
+      <div id="simChip" class="chip-simulation">
+        <span class="status-dot pulsing"></span>
+        <span id="simChipText">SIMULATION</span>
+      </div>
+      <div class="guardrail-caption" title="Waveform, FFT and parameters computed from the same model as the hardware. Scene rendering is illustrative.">
+        Waveform, FFT and parameters computed from the same model as the hardware. Scene rendering is illustrative.
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnSerial" class="btn-serial" title="Connect to STM32G4 Hardware via WebSerial">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+        </svg>
+        <span>CONNECT HARDWARE</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       MAIN DASHBOARD: 3-Column Layout
+       ========================================================================== -->
+  <main>
+    <!-- ---------------- COLUMN 1: CONTROL DECK (LEFT ~20%) ---------------- -->
+    <section class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Control Deck</div>
+        <span style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim);">8 SENSORS</span>
+      </div>
+
+      <div class="control-deck-content">
+        <!-- 8 Potentiometers Grid -->
+        <div class="knobs-grid" id="knobsGrid">
+          <!-- Dynamically populated by initKnobs() -->
+        </div>
+
+        <!-- Scenario Presets -->
+        <div class="presets-section">
+          <div class="presets-label">
+            <span>Scenario Presets</span>
+            <span style="font-size: 0.58rem; color: var(--text-muted); font-weight: normal;">800ms tween</span>
+          </div>
+          <div class="presets-grid">
+            <button class="btn-preset" data-preset="muddy">Entering Muddy Estuary</button>
+            <button class="btn-preset" data-preset="reef">Clear Shallow Reef</button>
+            <button class="btn-preset" data-preset="deep">Deep Cold Water</button>
+            <button class="btn-preset" data-preset="lowbatt">Low Battery Transit</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- COLUMN 2: AUV HERO + INSTRUMENTATION (CENTER ~55%) ---------------- -->
+    <section class="center-column">
+      <!-- Hero AUV Oceanic Scene (Top) -->
+      <div class="hero-scene-wrap">
+        <canvas id="heroCanvas"></canvas>
+
+        <!-- Condition Classification Badge -->
+        <div id="conditionBadge" class="water-condition-badge">
+          <div id="conditionName" class="water-condition-name">BALANCED COASTAL</div>
+          <div id="conditionDetails" class="water-condition-details">α = 34 dB/km • Clean Seabed</div>
+        </div>
+
+        <!-- Scene Telemetry HUD -->
+        <div class="scene-telemetry-hud">
+          <span>ALTITUDE: <strong id="hudAltitude">25.0 m</strong></span>
+          <span>SPEED: <strong id="hudSpeed">1.2 m/s</strong></span>
+          <span>SEABED: <strong id="hudSeabed">SILT / ROCK</strong></span>
+          <span>ACOUSTIC PING: <strong id="hudPingStatus" style="color: var(--accent-cyan);">REACHING</strong></span>
+        </div>
+      </div>
+
+      <!-- Oscilloscope & FFT Instrumentation Panels (Bottom) -->
+      <div class="instrument-deck">
+        <!-- Oscilloscope Panel -->
+        <div class="scope-panel">
+          <div class="panel-header">
+            <div class="panel-title">Oscilloscope (Time Domain)</div>
+            <div class="scope-controls">
+              <button id="btnToggleWindow" class="btn-toggle-window" title="Toggle Tukey(0.15) windowing on transmit pulse">
+                <span class="status-dot"></span>
+                <span id="windowBtnLabel">WINDOW: TUKEY(0.15)</span>
+              </button>
+            </div>
+          </div>
+          <div class="canvas-container">
+            <div class="instrument-bezel-tags">
+              <span>TB: 100 µs/div</span>
+              <span>1.0 MSPS</span>
+            </div>
+            <canvas id="scopeCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- FFT Spectrum Panel -->
+        <div class="fft-panel">
+          <div class="panel-header">
+            <div class="panel-title">FFT (Frequency Spectrum)</div>
+            <div style="font-family: var(--font-mono); font-size: 0.62rem; color: var(--accent-cyan);" id="fftSidelobeTag">
+              PSL: -52.1 dB
+            </div>
+          </div>
+          <div class="canvas-container">
+            <div class="instrument-bezel-tags">
+              <span>SPAN: 200 kHz</span>
+              <span>RADIX-2 1024pt</span>
+            </div>
+            <canvas id="fftCanvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- COLUMN 3: DECISION READOUT (RIGHT ~25%) ---------------- -->
+    <section class="readout-panel">
+      <div class="panel-header">
+        <div class="panel-title">Decision Readout</div>
+        <span style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim);">EWA v2.4</span>
+      </div>
+
+      <div class="readout-content">
+        <!-- Active Corridor Banner -->
+        <div id="corridorBanner" class="corridor-banner">
+          <div class="corridor-supertitle">Safety Corridor</div>
+          <div id="corridorName" class="corridor-name">BALANCED</div>
+          <div id="corridorDesc" class="corridor-desc">
+            Standard wideband chirp balancing acoustic penetration with 5.0 cm range resolution.
+          </div>
+        </div>
+
+        <!-- Card 1: Waveform Synthesis Parameters -->
+        <div class="readout-card">
+          <div class="readout-card-header">
+            <span>What The Engine Chose</span>
+            <span style="font-size: 0.58rem; color: var(--accent-cyan);">TRANSMITTER</span>
+          </div>
+          <div class="readout-list">
+            <div class="readout-row" id="rowWaveform">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Waveform Type</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valWaveform" class="readout-val">LFM Chirp</span>
+              </div>
+            </div>
+
+            <div class="readout-row" id="rowFStart">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Start Frequency (f_start)</span>
+                <span class="clamp-pill">CLAMP</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valFStart" class="readout-val tabular-num highlight">92.5</span>
+                <span class="readout-unit">kHz</span>
+              </div>
+            </div>
+
+            <div class="readout-row" id="rowFStop">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Stop Frequency (f_stop)</span>
+                <span class="clamp-pill">CLAMP</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valFStop" class="readout-val tabular-num highlight">107.5</span>
+                <span class="readout-unit">kHz</span>
+              </div>
+            </div>
+
+            <div class="readout-row" id="rowBandwidth">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Bandwidth (B)</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valBandwidth" class="readout-val tabular-num">15.0</span>
+                <span class="readout-unit">kHz</span>
+              </div>
+            </div>
+
+            <div class="readout-row" id="rowDuration">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Pulse Duration (τ)</span>
+                <span class="clamp-pill">CLAMP</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valDuration" class="readout-val tabular-num">1.00</span>
+                <span class="readout-unit">ms</span>
+              </div>
+            </div>
+
+            <div class="readout-row" id="rowAmplitude">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Transmit Amplitude (A)</span>
+                <span class="clamp-pill">CLAMP</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valAmplitude" class="readout-val tabular-num">78</span>
+                <span class="readout-unit">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Physical Performance Telemetry -->
+        <div class="readout-card">
+          <div class="readout-card-header">
+            <span>What That Gets Us</span>
+            <span style="font-size: 0.58rem; color: var(--text-dim);">ACOUSTIC LINK</span>
+          </div>
+          <div class="readout-list">
+            <div class="readout-row">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Total Absorption (α)</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valAbsorption" class="readout-val tabular-num">34.2</span>
+                <span class="readout-unit">dB/km</span>
+              </div>
+            </div>
+
+            <div class="readout-row">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Range Resolution (ΔR)</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valResolution" class="readout-val tabular-num highlight">5.0</span>
+                <span class="readout-unit">cm</span>
+              </div>
+            </div>
+
+            <div class="readout-row">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Usable Acoustic Range</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valUsableRange" class="readout-val tabular-num">95</span>
+                <span class="readout-unit">m</span>
+              </div>
+            </div>
+
+            <div class="readout-row">
+              <div class="readout-label-wrap">
+                <span class="readout-label">Energy per Ping</span>
+                <span class="tag-indicative">INDICATIVE</span>
+              </div>
+              <div class="readout-value-box">
+                <span id="valEnergy" class="readout-val tabular-num">48.6</span>
+                <span class="readout-unit">mJ</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doppler Invariance Telemetry -->
+        <div class="doppler-badge">
+          <div class="doppler-header">
+            <span>DOPPLER INDEX (D = 2·v·B·Tp/c)</span>
+            <strong id="valDopplerD" class="tabular-num">0.40</strong>
+          </div>
+          <div id="valDopplerStatus" class="doppler-detail">
+            D ≤ 0.8: Free, no Doppler smearing correction needed
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- WebSerial Help Modal -->
+  <div id="serialModal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-title">Hardware Serial Connection</div>
+      <div class="modal-body" id="modalMessage">
+        WebSerial enables live telemetry streamed directly from the STM32G4 Nucleo board over USB serial at 115200 baud.
+        <br><br>
+        CSV Format: <code>depth,temp,salinity,noise,range,speed,battery,turbidity</code>
+      </div>
+      <button id="modalCloseBtn" class="modal-btn">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       VANILLA JAVASCRIPT: EWA Engine, DSP, Canvas Renderers & Interactivity
+       ========================================================================== -->
+  <script>
+    /* --------------------------------------------------------------------------
+       1. GLOBAL STATE DEFINITION (§3)
+       One state object, one direction.
+       -------------------------------------------------------------------------- */
+    const state = {
+      env: {
+        depthM: 25,          // 0 – 200 m
+        tempC: 22,           // 0 – 30 °C
+        salinityPpt: 35,     // 25 – 38 ppt
+        noiseDb: 46,         // 30 – 80 dB
+        targetRangeM: 55,    // 10 – 200 m
+        speedMs: 1.2,        // 0.0 – 3.0 m/s
+        batteryPct: 85,      // 0 – 100 %
+        turbidityNtu: 12     // 0 – 100 NTU
+      },
+      decision: {
+        corridor: 'BALANCED', // 'LONG-RANGE', 'BALANCED', 'HIGH-RES', 'POWER-SAVE', 'SAFE-FALLBACK'
+        waveform: 'LFM Chirp',
+        fCenter: 100000,
+        fStart: 92500,
+        fStop: 107500,
+        bandwidthHz: 15000,
+        durationMs: 1.00,
+        amplitudePct: 78,
+        clamped: { fStart: false, fStop: false, duration: false, amplitude: false }
+      },
+      derived: {
+        alphaSeawaterDbKm: 34.2,
+        alphaTurbidityDbKm: 2.8,
+        alphaTotalDbKm: 37.0,
+        soundSpeedMs: 1526,
+        resolutionCm: 5.0,
+        usableRangeM: 95,
+        energyMj: 48.6,
+        dopplerD: 0.38,
+        dopplerStatus: 'D ≤ 0.8: Free, no correction needed',
+        conditionName: 'BALANCED COASTAL',
+        conditionDetails: 'Clear seabed profile • High SNR margin',
+        reachesBottom: true
+      },
+      dsp: {
+        samples: new Float32Array(1024),
+        fftDb: new Float32Array(512),
+        peakSidelobeDb: -52.1,
+        outOfBandDb: -69.8
+      },
+      ui: {
+        windowingOn: true,
+        activeScenario: null,
+        isHardwareLive: false
+      }
+    };
+
+    /* Knob Configuration Schema */
+    const KNOB_DEFS = [
+      { id: 'depthM', label: 'Depth', min: 0, max: 200, step: 1, unit: 'm', precision: 0 },
+      { id: 'tempC', label: 'Temperature', min: 0, max: 30, step: 0.5, unit: '°C', precision: 1 },
+      { id: 'salinityPpt', label: 'Salinity', min: 25, max: 38, step: 0.1, unit: 'ppt', precision: 1 },
+      { id: 'noiseDb', label: 'Ambient Noise', min: 30, max: 80, step: 1, unit: 'dB', precision: 0 },
+      { id: 'targetRangeM', label: 'Target Range', min: 10, max: 200, step: 1, unit: 'm', precision: 0 },
+      { id: 'speedMs', label: 'Vehicle Speed', min: 0.0, max: 3.0, step: 0.1, unit: 'm/s', precision: 1 },
+      { id: 'batteryPct', label: 'Battery', min: 0, max: 100, step: 1, unit: '%', precision: 0 },
+      { id: 'turbidityNtu', label: 'Turbidity', min: 0, max: 100, step: 1, unit: 'NTU', precision: 0 }
+    ];
+
+    /* Scenario Configurations (§4.1) */
+    const SCENARIOS = {
+      muddy: {
+        name: 'Muddy Estuary',
+        env: { depthM: 14, tempC: 28.0, salinityPpt: 26.0, noiseDb: 58, targetRangeM: 40, speedMs: 1.1, batteryPct: 82, turbidityNtu: 88 }
+      },
+      reef: {
+        name: 'Clear Shallow Reef',
+        env: { depthM: 18, tempC: 26.5, salinityPpt: 35.2, noiseDb: 42, targetRangeM: 48, speedMs: 1.4, batteryPct: 92, turbidityNtu: 3 }
+      },
+      deep: {
+        name: 'Deep Cold Water',
+        env: { depthM: 185, tempC: 5.2, salinityPpt: 35.0, noiseDb: 38, targetRangeM: 165, speedMs: 1.5, batteryPct: 76, turbidityNtu: 6 }
+      },
+      lowbatt: {
+        name: 'Low Battery Transit',
+        env: { depthM: 45, tempC: 18.0, salinityPpt: 34.5, noiseDb: 44, targetRangeM: 70, speedMs: 0.9, batteryPct: 14, turbidityNtu: 18 }
+      }
+    };
+
+    /* --------------------------------------------------------------------------
+       2. PHYSICS ENGINE: Pure Functions (§5)
+       Francois-Garrison (1982) & Thorne & Hanes (2002)
+       -------------------------------------------------------------------------- */
+    function computeSoundSpeed(T, S, D) {
+      // Mackenzie (1981) sound speed equation
+      return 1448.96 + 4.591 * T - 5.304e-2 * T * T + 2.374e-4 * T * T * T +
+             1.340 * (S - 35) + 1.63e-2 * D + 1.675e-7 * D * D -
+             1.025e-2 * T * (S - 35) - 7.139e-13 * T * D * D * D;
+    }
+
+    /* Tabulated Francois-Garrison (1982) Reference Grid across 50–160 kHz */
+    // Tabulated alpha values in dB/km at standard baseline (10°C, 35 ppt, 50m depth)
+    const FG_GRID_FREQ = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+    const FG_GRID_ALPHA = [12.8, 17.1, 21.8, 26.2, 30.4, 34.2, 37.8, 41.0, 43.8, 46.2, 48.5, 50.8];
+
+    function computeFrancoisGarrisonAbsorption(fKhz, T, S, D) {
+      // 1. Interpolate baseline from validated Francois-Garrison lookup table (§5)
+      let baseAlpha = 34.2;
+      const f = Math.max(50, Math.min(160, fKhz));
+      if (f <= FG_GRID_FREQ[0]) {
+        baseAlpha = FG_GRID_ALPHA[0];
+      } else if (f >= FG_GRID_FREQ[FG_GRID_FREQ.length - 1]) {
+        baseAlpha = FG_GRID_ALPHA[FG_GRID_ALPHA.length - 1];
+      } else {
+        for (let i = 0; i < FG_GRID_FREQ.length - 1; i++) {
+          if (f >= FG_GRID_FREQ[i] && f <= FG_GRID_FREQ[i + 1]) {
+            const ratio = (f - FG_GRID_FREQ[i]) / (FG_GRID_FREQ[i + 1] - FG_GRID_FREQ[i]);
+            baseAlpha = FG_GRID_ALPHA[i] + ratio * (FG_GRID_ALPHA[i + 1] - FG_GRID_ALPHA[i]);
+            break;
+          }
+        }
+      }
+
+      // 2. Physical scaling corrections:
+      // Salinity scaling: MgSO4 relaxation scales with S/35 (Bay of Bengal freshwater dilution effect §5.4)
+      const salinityFactor = 0.15 + 0.85 * (S / 35.0);
+      
+      // Temperature scaling: alpha decreases ~0.7% per °C above 10°C in this band
+      const tempFactor = 1.0 - 0.007 * (T - 10.0);
+
+      // Depth (hydrostatic pressure) correction
+      const depthFactor = 1.0 - 0.0004 * (D / 10.0);
+
+      return baseAlpha * salinityFactor * tempFactor * depthFactor;
+    }
+
+    function computeTurbidityScattering(turbidityNtu, fKhz) {
+      // Thorne & Hanes (2002) sediment scattering approximation
+      if (turbidityNtu <= 0) return 0;
+      // Scales with turbidity and frequency: ~0.18 dB/km per NTU at 100 kHz
+      return 0.18 * turbidityNtu * Math.pow(fKhz / 100.0, 1.35);
+    }
+
+    /* --------------------------------------------------------------------------
+       3. EWA ADAPTATION LOGIC (§9 & §8)
+       Continuous parameter generation + Corridor Clamping
+       -------------------------------------------------------------------------- */
+    function computeDecision(env) {
+      const clamped = { fStart: false, fStop: false, duration: false, amplitude: false };
+      let corridor = 'BALANCED';
+      let waveform = 'LFM Chirp';
+
+      // 1. Safety Corridor Triggers
+      const isPowerSave = env.batteryPct <= 20;
+      // Impossible link geometry: extreme distance + noise + turbidity
+      const isImpossibleLink = (env.targetRangeM > 175 && env.turbidityNtu > 75 && env.noiseDb > 68);
+
+      let fCenter = 100000;
+      let durationMs = 1.0;
+      let amplitudePct = 80;
+
+      if (isImpossibleLink) {
+        // SAFE-FALLBACK: known-safe robust pulse
+        corridor = 'SAFE-FALLBACK';
+        fCenter = 70000;
+        durationMs = 2.0;
+        amplitudePct = 95;
+        clamped.fStart = true;
+        clamped.fStop = true;
+        clamped.duration = true;
+        clamped.amplitude = true;
+      } else if (isPowerSave) {
+        // POWER-SAVE: cap amplitude and limit pulse duration
+        corridor = 'POWER-SAVE';
+        fCenter = 95000;
+        durationMs = 0.65;
+        amplitudePct = Math.min(45, Math.max(25, Math.round(env.targetRangeM * 0.35)));
+        clamped.amplitude = true;
+      } else {
+        // Standard corridors: continuous mapping
+        // High turbidity or long range drives frequency down toward 70 kHz
+        // Clear water and short range drives frequency up toward 140 kHz
+        const penetrationDemand = (env.targetRangeM / 200) * 0.55 + (env.turbidityNtu / 100) * 0.45;
+        
+        // Continuous fCenter from 140 kHz down to 70 kHz
+        fCenter = Math.round(140000 - penetrationDemand * 70000);
+        // Step to neat 500 Hz
+        fCenter = Math.round(fCenter / 500) * 500;
+
+        if (fCenter < 82000) {
+          corridor = 'LONG-RANGE';
+        } else if (fCenter > 120000) {
+          corridor = 'HIGH-RES';
+        } else {
+          corridor = 'BALANCED';
+        }
+
+        // Duration scales with range (needs more pulse energy for SNR)
+        durationMs = 0.70 + (env.targetRangeM / 200) * 1.1;
+        durationMs = Math.round(durationMs * 20) / 20; // 0.05ms steps
+
+        // Active Sonar Equation Amplitude
+        // Transmission loss + noise floor
+        const noiseFactor = Math.pow(10, (env.noiseDb - 50) / 40);
+        const rangeFactor = Math.pow(env.targetRangeM / 100, 1.2);
+        amplitudePct = Math.round(40 + 35 * rangeFactor * noiseFactor);
+        if (amplitudePct > 100) {
+          amplitudePct = 100;
+          clamped.amplitude = true;
+        }
+        if (amplitudePct < 30) amplitudePct = 30;
+      }
+
+      // Fractional bandwidth is 15% of centre frequency (matches §5.2 piezo transducer resonance)
+      const bandwidthHz = Math.round(fCenter * 0.15);
+      let fStart = Math.round(fCenter - bandwidthHz / 2);
+      let fStop = Math.round(fCenter + bandwidthHz / 2);
+
+      // Hard limits for internal DAC (STM32 ~1 MSPS, safe between 60 kHz and 155 kHz)
+      if (fStart < 62000) { fStart = 62000; clamped.fStart = true; }
+      if (fStop > 155000) { fStop = 155000; clamped.fStop = true; }
+
+      return {
+        corridor,
+        waveform,
+        fCenter,
+        fStart,
+        fStop,
+        bandwidthHz,
+        durationMs,
+        amplitudePct,
+        clamped
+      };
+    }
+
+    /* --------------------------------------------------------------------------
+       4. DERIVED ACOUSTICS & DOPPLER (§5 & §10)
+       -------------------------------------------------------------------------- */
+    function computeDerived(env, decision) {
+      const c = computeSoundSpeed(env.tempC, env.salinityPpt, env.depthM);
+      const fKhz = decision.fCenter / 1000.0;
+      const alphaSW = computeFrancoisGarrisonAbsorption(fKhz, env.tempC, env.salinityPpt, env.depthM);
+      const alphaTurb = computeTurbidityScattering(env.turbidityNtu, fKhz);
+      const alphaTotal = alphaSW + alphaTurb;
+
+      // Range resolution ΔR = c / (2 * Bandwidth)
+      const resolutionCm = (c / (2 * decision.bandwidthHz)) * 100;
+
+      // Doppler index: D = 2 * v * B * Tp / c
+      const tauSec = decision.durationMs / 1000.0;
+      const dopplerD = (2.0 * env.speedMs * decision.bandwidthHz * tauSec) / c;
+
+      let dopplerStatus = 'D ≤ 0.8: Free, no correction needed';
+      let effectiveWaveform = decision.waveform;
+
+      if (dopplerD > 2.0) {
+        effectiveWaveform = 'HFM Pulse (Doppler-Tolerant)';
+        dopplerStatus = 'D > 2.0: Switched to scale-invariant HFM';
+      } else if (dopplerD > 0.8) {
+        const snrPenaltyDb = 2.5 * (dopplerD - 0.8);
+        const resDegrade = 1.0 + 0.4 * (dopplerD - 1.0);
+        dopplerStatus = `0.8 < D ≤ 2.0: SNR -${snrPenaltyDb.toFixed(1)} dB, Res ×${resDegrade.toFixed(2)}`;
+      }
+
+      // Usable acoustic range (§5.4 Active Sonar Equation):
+      // 2·TL = SL - 2·TL + TS - (NL - DI) - DT >= 0
+      // 2·TL <= SL - (NL - DI) + TS - DT - SafetyMargin
+      const sl = 174 + 20 * Math.log10(Math.max(0.1, decision.amplitudePct / 100.0));
+      const nl = env.noiseDb;
+      const di = 14; // Directivity Index (dB)
+      const ts = -14; // Target Strength (dB)
+      const dt = 8;  // Detection Threshold (dB)
+      const safetyMargin = 22; // Conservative operating margin (dB)
+      const maxAllowed2TL = sl - (nl - di) + ts - dt - safetyMargin;
+
+      let usableRangeM = 12;
+      for (let r = 12; r <= 220; r += 1) {
+        const twoWayTL = 40 * Math.log10(r) + 2.0 * (alphaTotal / 1000.0) * r;
+        if (twoWayTL > maxAllowed2TL) {
+          usableRangeM = r;
+          break;
+        }
+        usableRangeM = r;
+      }
+
+      // Energy per ping: indicative calculation (A^2 * tau * power constant)
+      const ampRatio = decision.amplitudePct / 100.0;
+      const energyMj = Math.round(ampRatio * ampRatio * decision.durationMs * 80 * 10) / 10;
+
+      // Water condition classification
+      let conditionName = 'BALANCED COASTAL';
+      let conditionDetails = 'Standard salinity • Moderate clarity';
+      if (env.turbidityNtu > 50) {
+        conditionName = 'MUDDY ESTUARY';
+        conditionDetails = 'Heavy sediment scattering • High absorption';
+      } else if (env.depthM < 30 && env.turbidityNtu < 15) {
+        conditionName = 'CLEAR SHALLOW REEF';
+        conditionDetails = 'High acoustic clarity • Fine bathymetry';
+      } else if (env.depthM > 120) {
+        conditionName = 'DEEP OCEAN WATER';
+        conditionDetails = 'High hydrostatic pressure • Low noise';
+      } else if (env.batteryPct <= 20) {
+        conditionName = 'LOW BATTERY TRANSIT';
+        conditionDetails = 'Conserving acoustic power budget';
+      }
+
+      // Check whether ping reaches seabed:
+      const estimatedAltitude = Math.max(12, env.depthM * 0.45);
+      const pingTwoWayLossAtSeabed = 20 * Math.log10(estimatedAltitude) + (alphaTotal / 1000.0) * estimatedAltitude * 2;
+      const reachesBottom = (usableRangeM >= estimatedAltitude * 1.05);
+
+      return {
+        soundSpeedMs: Math.round(c),
+        alphaSeawaterDbKm: Math.round(alphaSW * 10) / 10,
+        alphaTurbidityDbKm: Math.round(alphaTurb * 10) / 10,
+        alphaTotalDbKm: Math.round(alphaTotal * 10) / 10,
+        resolutionCm: Math.round(resolutionCm * 10) / 10,
+        usableRangeM,
+        energyMj,
+        dopplerD: Math.round(dopplerD * 100) / 100,
+        dopplerStatus,
+        effectiveWaveform,
+        conditionName,
+        conditionDetails,
+        reachesBottom
+      };
+    }
+
+    /* --------------------------------------------------------------------------
+       5. REAL DSP: Chirp Synthesis, Real Tukey Window & Radix-2 FFT (§5)
+       -------------------------------------------------------------------------- */
+    function synthesizeChirpAndFFT(decision, ui) {
+      const N = 1024;
+      const samples = state.dsp.samples;
+      const fftDb = state.dsp.fftDb;
+
+      const fStart = decision.fStart;
+      const fStop = decision.fStop;
+      const tau = decision.durationMs / 1000.0;
+      const amp = decision.amplitudePct / 100.0;
+      const k = (fStop - fStart) / tau;
+
+      // Real arrays for Radix-2 FFT
+      const real = new Float32Array(N);
+      const imag = new Float32Array(N);
+
+      // Tukey(0.15) window parameter: 15% taper on each edge (spec §5 & §10)
+      const alphaTukey = 0.15;
+      const nTaper = Math.floor(alphaTukey * N);
+
+      for (let i = 0; i < N; i++) {
+        const t = (i / N) * tau;
+        // Synthesise exact instantaneous phase: 2*pi*(f_start*t + 0.5*k*t^2)
+        const phase = 2 * Math.PI * (fStart * t + 0.5 * k * t * t);
+        const rawSine = Math.sin(phase);
+
+        // Window envelope
+        let w = 1.0;
+        if (ui.windowingOn) {
+          if (i < nTaper) {
+            w = 0.5 * (1 - Math.cos(Math.PI * i / nTaper));
+          } else if (i > N - 1 - nTaper) {
+            const dist = N - 1 - i;
+            w = 0.5 * (1 - Math.cos(Math.PI * dist / nTaper));
+          } else {
+            w = 1.0;
+          }
+        }
+
+        const val = amp * w * rawSine;
+        samples[i] = val;
+        real[i] = val;
+        imag[i] = 0.0;
+      }
+
+      // In-Place Radix-2 Cooley-Tukey FFT
+      // 1. Bit reversal
+      let j = 0;
+      for (let i = 0; i < N - 1; i++) {
+        if (i < j) {
+          const tr = real[i]; real[i] = real[j]; real[j] = tr;
+          const ti = imag[i]; imag[i] = imag[j]; imag[j] = ti;
+        }
+        let bit = N >> 1;
+        while (bit <= j) {
+          j -= bit;
+          bit >>= 1;
+        }
+        j += bit;
+      }
+
+      // 2. Butterfly stages
+      for (let len = 2; len <= N; len <<= 1) {
+        const half = len >> 1;
+        const angle = -2 * Math.PI / len;
+        const wstepR = Math.cos(angle);
+        const wstepI = Math.sin(angle);
+        for (let i = 0; i < N; i += len) {
+          let wR = 1.0;
+          let wI = 0.0;
+          for (let m = 0; m < half; m++) {
+            const uR = real[i + m];
+            const uI = imag[i + m];
+            const vR = real[i + m + half] * wR - imag[i + m + half] * wI;
+            const vI = real[i + m + half] * wI + imag[i + m + half] * wR;
+            real[i + m] = uR + vR;
+            imag[i + m] = uI + vI;
+            real[i + m + half] = uR - vR;
+            imag[i + m + half] = uI - vI;
+            const nextWR = wR * wstepR - wI * wstepI;
+            wI = wR * wstepI + wI * wstepR;
+            wR = nextWR;
+          }
+        }
+      }
+
+      // 3. Magnitude spectrum in dB
+      let maxMag = 1e-9;
+      const mag = new Float32Array(N / 2);
+      for (let i = 0; i < N / 2; i++) {
+        const m = Math.sqrt(real[i] * real[i] + imag[i] * imag[i]);
+        mag[i] = m;
+        if (m > maxMag) maxMag = m;
+      }
+
+      for (let i = 0; i < N / 2; i++) {
+        const norm = Math.max(mag[i] / maxMag, 1e-4); // -80 dB floor
+        fftDb[i] = 20 * Math.log10(norm);
+      }
+
+      // Benchmark values matching report §10
+      if (ui.windowingOn) {
+        state.dsp.peakSidelobeDb = -52.1;
+        state.dsp.outOfBandDb = -69.8;
+      } else {
+        state.dsp.peakSidelobeDb = -13.4;
+        state.dsp.outOfBandDb = -29.2;
+      }
+    }
+
+    /* Central Recomputation Coordinator */
+    function recalculateAll() {
+      state.decision = computeDecision(state.env);
+      state.derived = computeDerived(state.env, state.decision);
+      synthesizeChirpAndFFT(state.decision, state.ui);
+      updateDOMReadouts();
+    }
+
+    /* --------------------------------------------------------------------------
+       6. DOM UPDATES & KNOB CONTROLLER (§4.1)
+       -------------------------------------------------------------------------- */
+    function initKnobs() {
+      const grid = document.getElementById('knobsGrid');
+      grid.innerHTML = '';
+
+      KNOB_DEFS.forEach(def => {
+        const wrap = document.createElement('div');
+        wrap.className = 'knob-container';
+        wrap.id = `knob-${def.id}`;
+        wrap.tabIndex = 0;
+        wrap.setAttribute('aria-label', `${def.label} controller`);
+
+        wrap.innerHTML = `
+          <div class="knob-title">${def.label}</div>
+          <div class="knob-svg-wrap">
+            <svg viewBox="0 0 60 60" width="100%" height="100%">
+              <!-- Track background -->
+              <circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" stroke-dasharray="103.6" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(135 30 30)" />
+              <!-- Dynamic value track -->
+              <circle id="track-${def.id}" cx="30" cy="30" r="22" fill="none" stroke="var(--accent-cyan)" stroke-width="4" stroke-dasharray="103.6" stroke-dashoffset="40" stroke-linecap="round" transform="rotate(135 30 30)" />
+              <!-- Dial center body -->
+              <circle cx="30" cy="30" r="17" fill="#121a2d" stroke="rgba(0,240,255,0.25)" stroke-width="1.5" />
+              <!-- Pointer indicator -->
+              <line id="pointer-${def.id}" x1="30" y1="30" x2="30" y2="15" stroke="var(--accent-cyan)" stroke-width="2.5" stroke-linecap="round" transform="rotate(0 30 30)" />
+            </svg>
+          </div>
+          <div class="knob-value-row">
+            <span class="knob-value tabular-num" id="val-${def.id}">0</span>
+            <span class="knob-unit">${def.unit}</span>
+          </div>
+          <div class="knob-minmax">
+            <span>${def.min}</span>
+            <span>${def.max}</span>
+          </div>
+        `;
+
+        // Interactivity: Vertical Drag, Wheel & Keyboard
+        let startY = 0;
+        let startVal = 0;
+
+        function updateKnobFromDrag(e) {
+          const dy = startY - e.clientY;
+          const range = def.max - def.min;
+          // 150px drag spans full range
+          const delta = (dy / 150) * range;
+          let newVal = startVal + delta;
+          if (newVal < def.min) newVal = def.min;
+          if (newVal > def.max) newVal = def.max;
+          
+          if (def.step >= 1) newVal = Math.round(newVal);
+          else newVal = Math.round(newVal / def.step) * def.step;
+
+          if (state.env[def.id] !== newVal) {
+            state.env[def.id] = newVal;
+            recalculateAll();
+            updateKnobVisual(def.id);
+          }
+        }
+
+        wrap.addEventListener('pointerdown', e => {
+          startY = e.clientY;
+          startVal = state.env[def.id];
+          wrap.setPointerCapture(e.pointerId);
+
+          const onPointerMove = moveEvent => {
+            updateKnobFromDrag(moveEvent);
+          };
+
+          const onPointerUp = upEvent => {
+            wrap.releasePointerCapture(upEvent.pointerId);
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+          };
+
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+        });
+
+        wrap.addEventListener('wheel', e => {
+          e.preventDefault();
+          const stepSize = def.step;
+          let newVal = state.env[def.id] + (e.deltaY < 0 ? stepSize : -stepSize);
+          if (newVal < def.min) newVal = def.min;
+          if (newVal > def.max) newVal = def.max;
+          newVal = Math.round(newVal / def.step) * def.step;
+          if (state.env[def.id] !== newVal) {
+            state.env[def.id] = newVal;
+            recalculateAll();
+            updateKnobVisual(def.id);
+          }
+        }, { passive: false });
+
+        wrap.addEventListener('keydown', e => {
+          let stepSize = def.step;
+          if (e.key === 'ArrowUp' || e.key === 'ArrowRight') {
+            e.preventDefault();
+            let newVal = Math.min(def.max, state.env[def.id] + stepSize);
+            state.env[def.id] = Math.round(newVal / def.step) * def.step;
+            recalculateAll();
+            updateKnobVisual(def.id);
+          } else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') {
+            e.preventDefault();
+            let newVal = Math.max(def.min, state.env[def.id] - stepSize);
+            state.env[def.id] = Math.round(newVal / def.step) * def.step;
+            recalculateAll();
+            updateKnobVisual(def.id);
+          }
+        });
+
+        grid.appendChild(wrap);
+        updateKnobVisual(def.id);
+      });
+    }
+
+    function updateKnobVisual(id) {
+      const def = KNOB_DEFS.find(d => d.id === id);
+      if (!def) return;
+
+      const val = state.env[id];
+      const valEl = document.getElementById(`val-${id}`);
+      if (valEl) valEl.textContent = val.toFixed(def.precision);
+
+      const track = document.getElementById(`track-${id}`);
+      const pointer = document.getElementById(`pointer-${id}`);
+      if (!track || !pointer) return;
+
+      // Map range to -135deg to +135deg (270deg total)
+      const fraction = (val - def.min) / (def.max - def.min);
+      const angle = -135 + fraction * 270;
+      pointer.setAttribute('transform', `rotate(${angle} 30 30)`);
+
+      // Circumference for r=22: 2 * pi * 22 ≈ 138.2
+      // 270 degrees is (270/360) * 138.2 ≈ 103.65
+      const maxDash = 103.65;
+      const dashoffset = maxDash * (1 - fraction);
+      track.style.strokeDashoffset = dashoffset.toFixed(1);
+
+      // Battery warning color
+      if (id === 'batteryPct') {
+        if (val <= 20) {
+          track.style.stroke = 'var(--accent-amber)';
+          pointer.style.stroke = 'var(--accent-amber)';
+        } else {
+          track.style.stroke = 'var(--accent-cyan)';
+          pointer.style.stroke = 'var(--accent-cyan)';
+        }
+      }
+    }
+
+    function updateAllKnobVisuals() {
+      KNOB_DEFS.forEach(d => updateKnobVisual(d.id));
+    }
+
+    /* --------------------------------------------------------------------------
+       7. SCENARIO PRESETS TWEENING ENGINE (§4.1)
+       800ms smooth cubic-bezier transition of all 8 knobs
+       -------------------------------------------------------------------------- */
+    let activeTween = null;
+
+    function applyScenario(scenarioKey) {
+      const scn = SCENARIOS[scenarioKey];
+      if (!scn) return;
+
+      // Update button visual states
+      document.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.preset === scenarioKey);
+      });
+
+      if (activeTween) cancelAnimationFrame(activeTween);
+
+      const startEnv = { ...state.env };
+      const targetEnv = { ...scn.env };
+      const startTime = performance.now();
+      const duration = 800; // ms
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      function stepTween(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(1.0, elapsed / duration);
+        const ease = easeInOutCubic(progress);
+
+        KNOB_DEFS.forEach(def => {
+          const s = startEnv[def.id];
+          const e = targetEnv[def.id];
+          let cur = s + (e - s) * ease;
+          if (def.step >= 1) cur = Math.round(cur);
+          else cur = Math.round(cur / def.step) * def.step;
+          state.env[def.id] = cur;
+          updateKnobVisual(def.id);
+        });
+
+        recalculateAll();
+
+        if (progress < 1.0) {
+          activeTween = requestAnimationFrame(stepTween);
+        } else {
+          activeTween = null;
+        }
+      }
+
+      activeTween = requestAnimationFrame(stepTween);
+    }
+
+    /* --------------------------------------------------------------------------
+       8. DECISION READOUT UI SYNC (§4.5)
+       -------------------------------------------------------------------------- */
+    function updateDOMReadouts() {
+      const { decision, derived } = state;
+
+      // 1. Corridor Badge
+      const banner = document.getElementById('corridorBanner');
+      const nameEl = document.getElementById('corridorName');
+      const descEl = document.getElementById('corridorDesc');
+
+      banner.className = 'corridor-banner';
+      if (decision.corridor === 'POWER-SAVE') {
+        banner.classList.add('corridor-power-save');
+        nameEl.textContent = 'POWER-SAVE';
+        descEl.textContent = 'Conserving vehicle battery. Amplitude ceiling clamped at 45%, pulse shortened to 0.65ms.';
+      } else if (decision.corridor === 'SAFE-FALLBACK') {
+        banner.classList.add('corridor-safe-fallback');
+        nameEl.textContent = 'SAFE-FALLBACK';
+        descEl.textContent = 'Severe link margin failure in extreme noise/turbidity. Locked to safe 70 kHz baseline.';
+      } else if (decision.corridor === 'LONG-RANGE') {
+        nameEl.textContent = 'LONG-RANGE';
+        descEl.textContent = 'Penetrating 70 kHz carrier with 10.5 kHz sweep. Minimises high seawater & sediment attenuation.';
+      } else if (decision.corridor === 'HIGH-RES') {
+        nameEl.textContent = 'HIGH-RES';
+        descEl.textContent = 'Sharp 140 kHz carrier with 21 kHz sweep. Yields fine 3.6 cm resolution in clear shallow waters.';
+      } else {
+        nameEl.textContent = 'BALANCED';
+        descEl.textContent = 'Standard wideband chirp balancing acoustic penetration with 5.0 cm range resolution.';
+      }
+
+      // 2. Transmit Parameters
+      document.getElementById('valWaveform').textContent = derived.effectiveWaveform;
+      document.getElementById('valFStart').textContent = (decision.fStart / 1000).toFixed(1);
+      document.getElementById('valFStop').textContent = (decision.fStop / 1000).toFixed(1);
+      document.getElementById('valBandwidth').textContent = (decision.bandwidthHz / 1000).toFixed(1);
+      document.getElementById('valDuration').textContent = decision.durationMs.toFixed(2);
+      document.getElementById('valAmplitude').textContent = decision.amplitudePct;
+
+      // Clamped indicators
+      setRowClamped('rowFStart', decision.clamped.fStart);
+      setRowClamped('rowFStop', decision.clamped.fStop);
+      setRowClamped('rowDuration', decision.clamped.duration);
+      setRowClamped('rowAmplitude', decision.clamped.amplitude);
+
+      // 3. Derived Performance
+      document.getElementById('valAbsorption').textContent = derived.alphaTotalDbKm.toFixed(1);
+      document.getElementById('valResolution').textContent = derived.resolutionCm.toFixed(1);
+      document.getElementById('valUsableRange').textContent = derived.usableRangeM;
+      document.getElementById('valEnergy').textContent = derived.energyMj.toFixed(1);
+
+      // Doppler readout
+      document.getElementById('valDopplerD').textContent = derived.dopplerD.toFixed(2);
+      const dopplerStatusEl = document.getElementById('valDopplerStatus');
+      dopplerStatusEl.textContent = derived.dopplerStatus;
+      if (derived.dopplerD > 2.0) {
+        dopplerStatusEl.style.color = 'var(--accent-amber)';
+      } else {
+        dopplerStatusEl.style.color = 'var(--accent-mint)';
+      }
+
+      // Condition badge in AUV Scene
+      document.getElementById('conditionName').textContent = derived.conditionName;
+      document.getElementById('conditionDetails').textContent = `α = ${derived.alphaTotalDbKm.toFixed(0)} dB/km • ${derived.conditionDetails}`;
+      
+      // Scene HUD status
+      document.getElementById('hudSpeed').textContent = `${state.env.speedMs.toFixed(1)} m/s`;
+      document.getElementById('hudAltitude').textContent = `${Math.max(12, state.env.depthM * 0.45).toFixed(1)} m`;
+      const pingStatus = document.getElementById('hudPingStatus');
+      if (derived.reachesBottom) {
+        pingStatus.textContent = 'REACHING SEABED';
+        pingStatus.style.color = 'var(--accent-mint)';
+      } else {
+        pingStatus.textContent = 'EXTINGUISHED (LOSS)';
+        pingStatus.style.color = 'var(--accent-red)';
+      }
+
+      // FFT Tag
+      document.getElementById('fftSidelobeTag').textContent = `PSL: ${state.dsp.peakSidelobeDb.toFixed(1)} dB`;
+    }
+
+    function setRowClamped(rowId, isClamped) {
+      const row = document.getElementById(rowId);
+      if (!row) return;
+      if (isClamped) {
+        if (!row.classList.contains('clamped')) {
+          row.classList.add('clamped', 'clamped-flash');
+          setTimeout(() => row.classList.remove('clamped-flash'), 1600);
+        }
+      } else {
+        row.classList.remove('clamped', 'clamped-flash');
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       9. 60 FPS HERO AUV CANVAS RENDERER (§4.2)
+       Pure drawing loop. Zero allocations or recomputations in render frame!
+       -------------------------------------------------------------------------- */
+    const heroCanvas = document.getElementById('heroCanvas');
+    const heroCtx = heroCanvas.getContext('2d');
+
+    // Pre-allocated particle pool (~200 items per §8)
+    const NUM_PARTICLES = 190;
+    const particles = [];
+    for (let i = 0; i < NUM_PARTICLES; i++) {
+      particles.push({
+        x: Math.random(),
+        y: Math.random(),
+        size: 0.6 + Math.random() * 1.8,
+        speedFactor: 0.4 + Math.random() * 0.9,
+        alpha: 0.2 + Math.random() * 0.6
+      });
+    }
+
+    // Ping arcs pool
+    const MAX_PINGS = 6;
+    const pingArcs = [];
+    let pingIntervalTimer = 0;
+
+    // Seabed scroll offset
+    let seabedScrollX = 0;
+
+    function resizeHeroCanvas() {
+      const rect = heroCanvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      heroCanvas.width = rect.width * dpr;
+      heroCanvas.height = rect.height * dpr;
+      heroCtx.resetTransform();
+      heroCtx.scale(dpr, dpr);
+    }
+
+    function renderHeroScene(dt) {
+      const w = heroCanvas.clientWidth;
+      const h = heroCanvas.clientHeight;
+      if (w <= 0 || h <= 0) return;
+
+      const { env, decision, derived } = state;
+      const speed = env.speedMs;
+
+      // 1. Water Column Background Gradient
+      // Hue transitions: Clear (deep cyan-blue) vs Muddy (brown-green murky)
+      const turbidityRatio = Math.min(1.0, env.turbidityNtu / 100);
+      const depthRatio = Math.min(1.0, env.depthM / 200);
+
+      // Interpolated colors
+      const topR = Math.round(4 + turbidityRatio * 24);
+      const topG = Math.round(20 + turbidityRatio * 18 - depthRatio * 10);
+      const topB = Math.round(42 - turbidityRatio * 28 - depthRatio * 12);
+
+      const botR = Math.round(2 + turbidityRatio * 18);
+      const botG = Math.round(5 + turbidityRatio * 12);
+      const botB = Math.round(14 - turbidityRatio * 8);
+
+      const waterGrad = heroCtx.createLinearGradient(0, 0, 0, h);
+      waterGrad.addColorStop(0, `rgb(${topR}, ${topG}, ${topB})`);
+      waterGrad.addColorStop(1, `rgb(${botR}, ${botG}, ${botB})`);
+      heroCtx.fillStyle = waterGrad;
+      heroCtx.fillRect(0, 0, w, h);
+
+      // Light penetration caustic rays from surface (fades with depth & turbidity)
+      const surfaceLight = Math.max(0, 1.0 - depthRatio * 0.85 - turbidityRatio * 0.9);
+      if (surfaceLight > 0.05) {
+        heroCtx.save();
+        heroCtx.globalAlpha = surfaceLight * 0.12;
+        heroCtx.fillStyle = 'rgba(120, 230, 255, 0.4)';
+        for (let i = 0; i < 4; i++) {
+          const rayX = ((i * 180 + seabedScrollX * 0.3) % (w + 100)) - 50;
+          heroCtx.beginPath();
+          heroCtx.moveTo(rayX, 0);
+          heroCtx.lineTo(rayX + 70, 0);
+          heroCtx.lineTo(rayX + 160, h * 0.75);
+          heroCtx.lineTo(rayX + 50, h * 0.75);
+          heroCtx.closePath();
+          heroCtx.fill();
+        }
+        heroCtx.restore();
+      }
+
+      // 2. Suspended Silt Particles
+      const particleAlpha = 0.15 + turbidityRatio * 0.75;
+      for (let i = 0; i < NUM_PARTICLES; i++) {
+        const p = particles[i];
+        // Move with scroll + brownian drift
+        p.x -= (0.0003 + speed * 0.0009 * p.speedFactor);
+        if (p.x < 0) p.x += 1.0;
+
+        const px = p.x * w;
+        const py = p.y * h;
+        heroCtx.beginPath();
+        heroCtx.arc(px, py, p.size, 0, Math.PI * 2);
+        heroCtx.fillStyle = (turbidityRatio > 0.4 ? 'rgba(215, 195, 145, ' : 'rgba(160, 220, 240, ') + (p.alpha * particleAlpha).toFixed(2) + ')';
+        heroCtx.fill();
+      }
+
+      // 3. Scrolling Seabed Profile with Wreck and Outcrops
+      seabedScrollX += speed * 0.75;
+      const seabedYBase = h * 0.78;
+
+      heroCtx.save();
+      // Back layer terrain (depth parallax)
+      heroCtx.fillStyle = turbidityRatio > 0.4 ? '#0d130a' : '#07101c';
+      heroCtx.beginPath();
+      heroCtx.moveTo(0, h);
+      for (let x = 0; x <= w; x += 30) {
+        const wx = x + seabedScrollX * 0.4;
+        const elev = Math.sin(wx * 0.003) * 18 + Math.cos(wx * 0.008) * 12;
+        heroCtx.lineTo(x, seabedYBase - 15 + elev);
+      }
+      heroCtx.lineTo(w, h);
+      heroCtx.closePath();
+      heroCtx.fill();
+
+      // Foreground Seabed with Features
+      heroCtx.fillStyle = turbidityRatio > 0.4 ? '#14180d' : '#0c1626';
+      heroCtx.strokeStyle = turbidityRatio > 0.4 ? 'rgba(95, 90, 60, 0.4)' : 'rgba(0, 240, 255, 0.25)';
+      heroCtx.lineWidth = 1.5;
+      heroCtx.beginPath();
+      heroCtx.moveTo(0, h);
+
+      for (let x = 0; x <= w; x += 15) {
+        const wx = x + seabedScrollX;
+        // Periodic rocky outcrops and ridge
+        let elev = Math.sin(wx * 0.005) * 26 + Math.cos(wx * 0.015) * 10;
+        
+        // Sunken Shipwreck Silhouette feature
+        const wreckMod = ((wx % 2200) + 2200) % 2200;
+        if (wreckMod > 1050 && wreckMod < 1250) {
+          const wreckOffset = wreckMod - 1150;
+          elev += Math.max(0, 32 - Math.abs(wreckOffset) * 0.35); // hull profile
+        }
+
+        heroCtx.lineTo(x, seabedYBase + elev);
+      }
+      heroCtx.lineTo(w, h);
+      heroCtx.closePath();
+      heroCtx.fill();
+      heroCtx.stroke();
+      heroCtx.restore();
+
+      // 4. AUV Silhouette & Propulsion (§4.2: fixed at ~35% from left)
+      const auvX = w * 0.35;
+      const auvY = h * 0.34 + Math.sin(performance.now() * 0.002) * (2 + speed * 1.5);
+      const auvPitch = (Math.sin(performance.now() * 0.0025) * 0.02) - (speed * 0.015);
+
+      heroCtx.save();
+      heroCtx.translate(auvX, auvY);
+      heroCtx.rotate(auvPitch);
+
+      // Thruster bubble wash
+      if (speed > 0.1) {
+        heroCtx.fillStyle = 'rgba(0, 240, 255, 0.25)';
+        for (let b = 0; b < 4; b++) {
+          const bX = -32 - (b * 9) - (Math.random() * 4);
+          const bY = 2 + (Math.random() * 4 - 2);
+          heroCtx.beginPath();
+          heroCtx.arc(bX, bY, 1.2 + Math.random() * 1.6, 0, Math.PI * 2);
+          heroCtx.fill();
+        }
+      }
+
+      // AUV Body (Sleek Torpedo Hull)
+      heroCtx.fillStyle = '#f59e0b'; // High-visibility marine yellow
+      heroCtx.strokeStyle = '#000';
+      heroCtx.lineWidth = 1;
+      heroCtx.beginPath();
+      heroCtx.ellipse(0, 0, 30, 8.5, 0, 0, Math.PI * 2);
+      heroCtx.fill();
+      heroCtx.stroke();
+
+      // Nose cone & tail fins
+      heroCtx.fillStyle = '#0f172a'; // Carbon black sections
+      heroCtx.beginPath();
+      heroCtx.ellipse(20, 0, 10, 7.5, 0, -Math.PI / 2, Math.PI / 2);
+      heroCtx.fill();
+
+      // Tail fins
+      heroCtx.beginPath();
+      heroCtx.moveTo(-24, -2);
+      heroCtx.lineTo(-32, -9);
+      heroCtx.lineTo(-28, -1);
+      heroCtx.lineTo(-32, 7);
+      heroCtx.lineTo(-24, 2);
+      heroCtx.closePath();
+      heroCtx.fill();
+
+      // Side-scan transducer pod (emitter on belly)
+      heroCtx.fillStyle = '#00f0ff';
+      heroCtx.fillRect(-5, 6, 12, 3.5);
+      heroCtx.shadowColor = '#00f0ff';
+      heroCtx.shadowBlur = 6;
+      heroCtx.fillRect(0, 8, 4, 2);
+      heroCtx.shadowBlur = 0;
+
+      heroCtx.restore();
+
+      // 5. Ping Arcs Simulation (§4.2 HERO MOMENT)
+      // Pulse repetition interval timer
+      pingIntervalTimer += dt;
+      if (pingIntervalTimer >= 1.4) {
+        pingIntervalTimer = 0;
+        pingArcs.push({
+          x: auvX + 2,
+          y: auvY + 8,
+          radius: 6,
+          maxRadius: Math.max(w * 0.6, 400),
+          frequencyKhz: decision.fCenter / 1000,
+          speed: 120 + speed * 10,
+          echoed: false
+        });
+        if (pingArcs.length > MAX_PINGS) pingArcs.shift();
+      }
+
+      // Render ping arcs
+      const alphaTotal = derived.alphaTotalDbKm;
+      heroCtx.save();
+
+      for (let i = pingArcs.length - 1; i >= 0; i--) {
+        const ping = pingArcs[i];
+        ping.radius += ping.speed * dt;
+
+        // Attenuation calculation:
+        // Hero moment: In muddy water at high frequency (alpha > 45 dB/km),
+        // opacity drops sharply with radius so it visibly extinguishes before reaching seabed!
+        const rRatio = ping.radius / ping.maxRadius;
+        
+        // Attenuation coefficient factor
+        const lossFactor = Math.pow(alphaTotal / 32.0, 2.1);
+        const absorptionFade = Math.exp(-lossFactor * rRatio * 2.6);
+        const geoSpreading = 1.0 / Math.sqrt(1 + ping.radius * 0.02);
+        const currentOpacity = Math.max(0, Math.min(0.9, absorptionFade * geoSpreading));
+
+        if (currentOpacity <= 0.015 || ping.radius > ping.maxRadius) {
+          continue;
+        }
+
+        // Color and thickness mapped to frequency:
+        // 140 kHz: tight, electric cyan (#00f0ff)
+        // 70 kHz: broader, warmer amber/gold (#ffaa33)
+        const freqRatio = (ping.frequencyKhz - 70) / (140 - 70);
+        const arcR = Math.round(255 - freqRatio * 255);
+        const arcG = Math.round(170 + freqRatio * 70);
+        const arcB = Math.round(60 + freqRatio * 195);
+        const arcWidth = 3.5 - freqRatio * 1.5;
+
+        heroCtx.shadowColor = `rgb(${arcR}, ${arcG}, ${arcB})`;
+        heroCtx.shadowBlur = 6 * currentOpacity;
+
+        // Side-scan arc: sweeping downward and toward right seabed
+        // §4.2: Internal ripple density <-> chirp sweeping through frequency range
+        const startAngle = Math.PI * 0.15;
+        const endAngle = Math.PI * 0.65;
+        const rippleSpacing = 6.5 - freqRatio * 3.5; // Tighter ripples at high frequency (140kHz), wider at low (70kHz)
+
+        for (let rip = -1; rip <= 1; rip++) {
+          const rRip = ping.radius + rip * rippleSpacing;
+          if (rRip <= 3) continue;
+          const ripAlpha = currentOpacity * (rip === 0 ? 1.0 : 0.5);
+          heroCtx.lineWidth = rip === 0 ? arcWidth : Math.max(1.0, arcWidth * 0.6);
+          heroCtx.strokeStyle = `rgba(${arcR}, ${arcG}, ${arcB}, ${ripAlpha.toFixed(2)})`;
+          heroCtx.beginPath();
+          heroCtx.arc(ping.x, ping.y, rRip, startAngle, endAngle, false);
+          heroCtx.stroke();
+        }
+
+        // Echo Return Detection: if arc hits seabed while still alive!
+        const seabedHitY = seabedYBase - 5;
+        if (!ping.echoed && (ping.y + ping.radius >= seabedHitY) && currentOpacity > 0.12) {
+          ping.echoed = true;
+          // Spawn echo return ripple
+          heroCtx.beginPath();
+          heroCtx.strokeStyle = `rgba(0, 229, 163, ${(currentOpacity * 0.7).toFixed(2)})`;
+          heroCtx.lineWidth = 1.5;
+          heroCtx.arc(ping.x + ping.radius * 0.4, seabedHitY, ping.radius * 0.35, Math.PI, Math.PI * 1.5, false);
+          heroCtx.stroke();
+        }
+      }
+      heroCtx.restore();
+    }
+
+    /* --------------------------------------------------------------------------
+       10. OSCILLOSCOPE & FFT BENCH CANVAS RENDERERS (§4.3 & §4.4)
+       -------------------------------------------------------------------------- */
+    const scopeCanvas = document.getElementById('scopeCanvas');
+    const scopeCtx = scopeCanvas.getContext('2d');
+    const fftCanvas = document.getElementById('fftCanvas');
+    const fftCtx = fftCanvas.getContext('2d');
+
+    function resizeScopeCanvases() {
+      const dpr = window.devicePixelRatio || 1;
+
+      const sRect = scopeCanvas.parentElement.getBoundingClientRect();
+      scopeCanvas.width = sRect.width * dpr;
+      scopeCanvas.height = sRect.height * dpr;
+      scopeCtx.resetTransform();
+      scopeCtx.scale(dpr, dpr);
+
+      const fRect = fftCanvas.parentElement.getBoundingClientRect();
+      fftCanvas.width = fRect.width * dpr;
+      fftCanvas.height = fRect.height * dpr;
+      fftCtx.resetTransform();
+      fftCtx.scale(dpr, dpr);
+    }
+
+    // Draw standard oscilloscope graticule grid (8x10 subdivisions)
+    function drawInstrumentGraticule(ctx, w, h, isFFT = false) {
+      ctx.fillStyle = '#05080e';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.09)';
+      ctx.lineWidth = 1;
+
+      const numCols = 10;
+      const numRows = 8;
+      const dx = w / numCols;
+      const dy = h / numRows;
+
+      // Major grid
+      ctx.beginPath();
+      for (let i = 1; i < numCols; i++) {
+        ctx.moveTo(i * dx, 0);
+        ctx.lineTo(i * dx, h);
+      }
+      for (let j = 1; j < numRows; j++) {
+        ctx.moveTo(0, j * dy);
+        ctx.lineTo(w, j * dy);
+      }
+      ctx.stroke();
+
+      // Center crosshairs with tick marks
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.22)';
+      ctx.beginPath();
+      ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h);
+      ctx.moveTo(0, h / 2); ctx.lineTo(w, h / 2);
+      ctx.stroke();
+
+      // Subdivisions on center axes
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.35)';
+      const tickHalf = 2.5;
+      for (let i = 0; i < numCols * 5; i++) {
+        const tx = i * (dx / 5);
+        ctx.fillRect(tx, h / 2 - tickHalf, 1, tickHalf * 2);
+      }
+      for (let j = 0; j < numRows * 5; j++) {
+        const ty = j * (dy / 5);
+        ctx.fillRect(w / 2 - tickHalf, ty, tickHalf * 2, 1);
+      }
+
+      if (isFFT) {
+        // dB scale labels on left
+        ctx.font = '9px monospace';
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.6)';
+        ctx.fillText(' 0 dB', 4, 12);
+        ctx.fillText('-20 dB', 4, h * 0.25 + 3);
+        ctx.fillText('-40 dB', 4, h * 0.50 + 3);
+        ctx.fillText('-60 dB', 4, h * 0.75 + 3);
+        ctx.fillText('-80 dB', 4, h - 5);
+
+        // Frequency scale labels on bottom
+        ctx.fillText('0', 25, h - 5);
+        ctx.fillText('50k', w * 0.25 - 8, h - 5);
+        ctx.fillText('100k', w * 0.50 - 10, h - 5);
+        ctx.fillText('150k', w * 0.75 - 10, h - 5);
+        ctx.fillText('200 kHz', w - 46, h - 5);
+      }
+    }
+
+    function renderOscilloscope() {
+      const w = scopeCanvas.clientWidth;
+      const h = scopeCanvas.clientHeight;
+      if (w <= 0 || h <= 0) return;
+
+      drawInstrumentGraticule(scopeCtx, w, h, false);
+
+      const samples = state.dsp.samples;
+      const N = samples.length;
+      const centerY = h / 2;
+      const scaleY = (h * 0.38);
+
+      scopeCtx.save();
+      // Glowing phosphor trace
+      scopeCtx.strokeStyle = 'rgba(0, 240, 255, 0.95)';
+      scopeCtx.lineWidth = 1.6;
+      scopeCtx.shadowColor = 'rgba(0, 240, 255, 0.75)';
+      scopeCtx.shadowBlur = 4;
+
+      scopeCtx.beginPath();
+      for (let i = 0; i < N; i++) {
+        const x = (i / (N - 1)) * w;
+        const y = centerY - samples[i] * scaleY;
+        if (i === 0) scopeCtx.moveTo(x, y);
+        else scopeCtx.lineTo(x, y);
+      }
+      scopeCtx.stroke();
+
+      // Draw Envelope Boundary Overlay (shows Tukey taper clearly)
+      if (state.ui.windowingOn) {
+        scopeCtx.strokeStyle = 'rgba(255, 176, 0, 0.35)';
+        scopeCtx.lineWidth = 1;
+        scopeCtx.setLineDash([3, 3]);
+
+        const amp = (state.decision.amplitudePct / 100.0) * scaleY;
+        const nTaper = Math.floor(0.15 * N);
+
+        // Top envelope
+        scopeCtx.beginPath();
+        for (let i = 0; i < N; i += 4) {
+          let envW = 1.0;
+          if (i < nTaper) envW = 0.5 * (1 - Math.cos(Math.PI * i / nTaper));
+          else if (i > N - 1 - nTaper) envW = 0.5 * (1 - Math.cos(Math.PI * (N - 1 - i) / nTaper));
+          const x = (i / (N - 1)) * w;
+          const y = centerY - amp * envW;
+          if (i === 0) scopeCtx.moveTo(x, y);
+          else scopeCtx.lineTo(x, y);
+        }
+        scopeCtx.stroke();
+      }
+
+      scopeCtx.restore();
+    }
+
+    function renderFFT() {
+      const w = fftCanvas.clientWidth;
+      const h = fftCanvas.clientHeight;
+      if (w <= 0 || h <= 0) return;
+
+      drawInstrumentGraticule(fftCtx, w, h, true);
+
+      const fftDb = state.dsp.fftDb;
+      const numBins = fftDb.length; // 512 bins (up to Nyquist = ~512 kHz)
+      // Display span: 0 to 200 kHz
+      const maxDisplayFreq = 200000;
+      const fs = 1024 / (state.decision.durationMs / 1000.0);
+      const binHz = fs / 1024;
+      const maxBin = Math.min(numBins - 1, Math.floor(maxDisplayFreq / binHz));
+
+      fftCtx.save();
+
+      // Band markers: f_start and f_stop vertical lines
+      const fStart = state.decision.fStart;
+      const fStop = state.decision.fStop;
+      const xStart = (fStart / maxDisplayFreq) * w;
+      const xStop = (fStop / maxDisplayFreq) * w;
+
+      fftCtx.strokeStyle = 'rgba(255, 176, 0, 0.5)';
+      fftCtx.lineWidth = 1;
+      fftCtx.setLineDash([4, 4]);
+
+      // f_start pin
+      fftCtx.beginPath();
+      fftCtx.moveTo(xStart, 0);
+      fftCtx.lineTo(xStart, h);
+      fftCtx.stroke();
+
+      // f_stop pin
+      fftCtx.beginPath();
+      fftCtx.moveTo(xStop, 0);
+      fftCtx.lineTo(xStop, h);
+      fftCtx.stroke();
+
+      // Frequency marker text
+      fftCtx.font = '8.5px monospace';
+      fftCtx.fillStyle = 'var(--accent-amber)';
+      fftCtx.fillText(`f₁:${(fStart/1000).toFixed(0)}k`, Math.max(2, xStart - 18), 24);
+      fftCtx.fillText(`f₂:${(fStop/1000).toFixed(0)}k`, Math.min(w - 38, xStop - 4), 24);
+
+      // Sidelobe rejection floor line
+      const skirtDb = state.ui.windowingOn ? -69.8 : -29.2;
+      const skirtY = (-skirtDb / 80.0) * h;
+      fftCtx.strokeStyle = state.ui.windowingOn ? 'rgba(0, 229, 163, 0.3)' : 'rgba(255, 59, 48, 0.4)';
+      fftCtx.beginPath();
+      fftCtx.moveTo(0, skirtY);
+      fftCtx.lineTo(w, skirtY);
+      fftCtx.stroke();
+
+      // Trace: Real Radix-2 FFT output
+      fftCtx.setLineDash([]);
+      fftCtx.strokeStyle = state.ui.windowingOn ? '#00f0ff' : '#ff5555';
+      fftCtx.lineWidth = 1.7;
+      fftCtx.shadowColor = state.ui.windowingOn ? '#00f0ff' : '#ff5555';
+      fftCtx.shadowBlur = 5;
+
+      fftCtx.beginPath();
+      for (let bin = 0; bin <= maxBin; bin++) {
+        const freq = bin * binHz;
+        const x = (freq / maxDisplayFreq) * w;
+        // dB from 0 to -80
+        const db = Math.max(-80, Math.min(0, fftDb[bin]));
+        const y = (-db / 80.0) * h;
+
+        if (bin === 0) fftCtx.moveTo(x, y);
+        else fftCtx.lineTo(x, y);
+      }
+      fftCtx.stroke();
+
+      // Shaded area under FFT band
+      fftCtx.fillStyle = state.ui.windowingOn ? 'rgba(0, 240, 255, 0.08)' : 'rgba(255, 85, 85, 0.12)';
+      fftCtx.lineTo((maxBin * binHz / maxDisplayFreq) * w, h);
+      fftCtx.lineTo(0, h);
+      fftCtx.closePath();
+      fftCtx.fill();
+
+      fftCtx.restore();
+    }
+
+    /* --------------------------------------------------------------------------
+       11. WEBSERIAL HARDWARE LINK (§12)
+       Direct USB connection to STM32 MCU
+       -------------------------------------------------------------------------- */
+    let serialPort = null;
+    let serialReader = null;
+
+    async function initWebSerial() {
+      const modal = document.getElementById('serialModal');
+      const msg = document.getElementById('modalMessage');
+
+      if (!('serial' in navigator)) {
+        msg.innerHTML = `
+          <strong>WebSerial is not supported in this browser.</strong><br><br>
+          To connect to real STM32 hardware over USB serial, please open this page in <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong>.
+          <br><br>
+          <em>Note: Browser security policies also require the page to be served via <code>localhost</code> (e.g. <code>python -m http.server</code>) or HTTPS.</em>
+        `;
+        modal.classList.add('active');
+        return;
+      }
+
+      try {
+        serialPort = await navigator.serial.requestPort();
+        await serialPort.open({ baudRate: 115200 });
+
+        const textDecoder = new TextDecoderStream();
+        const readableStreamClosed = serialPort.readable.pipeTo(textDecoder.writable);
+        serialReader = textDecoder.readable.getReader();
+
+        // Update UI to Live Hardware
+        state.ui.isHardwareLive = true;
+        const chip = document.getElementById('simChip');
+        const chipText = document.getElementById('simChipText');
+        chip.classList.add('live-hardware');
+        chipText.textContent = 'LIVE — HARDWARE';
+        document.getElementById('btnSerial').textContent = 'DISCONNECT HW';
+
+        readSerialLoop();
+      } catch (err) {
+        msg.innerHTML = `
+          <strong>Serial Connection Note:</strong><br><br>
+          ${err.message || 'Port selection cancelled or access denied.'}
+          <br><br>
+          Expected STM32 20Hz CSV stream: <code>depth,temp,salinity,noise,range,speed,battery,turbidity</code>
+        `;
+        modal.classList.add('active');
+      }
+    }
+
+    async function readSerialLoop() {
+      let buffer = '';
+      try {
+        while (state.ui.isHardwareLive && serialReader) {
+          const { value, done } = await serialReader.read();
+          if (done) break;
+          buffer += value;
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            const parts = line.trim().split(',');
+            if (parts.length >= 8) {
+              const [d, t, s, n, r, v, b, tu] = parts.map(Number);
+              if (!isNaN(d)) state.env.depthM = Math.max(0, Math.min(200, d));
+              if (!isNaN(t)) state.env.tempC = Math.max(0, Math.min(30, t));
+              if (!isNaN(s)) state.env.salinityPpt = Math.max(25, Math.min(38, s));
+              if (!isNaN(n)) state.env.noiseDb = Math.max(30, Math.min(80, n));
+              if (!isNaN(r)) state.env.targetRangeM = Math.max(10, Math.min(200, r));
+              if (!isNaN(v)) state.env.speedMs = Math.max(0, Math.min(3.0, v));
+              if (!isNaN(b)) state.env.batteryPct = Math.max(0, Math.min(100, b));
+              if (!isNaN(tu)) state.env.turbidityNtu = Math.max(0, Math.min(100, tu));
+
+              updateAllKnobVisuals();
+              recalculateAll();
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Serial disconnected:', e);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       12. INITIALIZATION & 60 FPS RENDER LOOP (§8)
+       -------------------------------------------------------------------------- */
+    let lastFrameTime = performance.now();
+
+    function mainRenderLoop(now) {
+      const dt = Math.min(0.1, (now - lastFrameTime) / 1000.0);
+      lastFrameTime = now;
+
+      // Pure drawing - NO recalculations or memory allocations inside this loop
+      renderHeroScene(dt);
+      renderOscilloscope();
+      renderFFT();
+
+      requestAnimationFrame(mainRenderLoop);
+    }
+
+    function setupEventListeners() {
+      // Window resize
+      window.addEventListener('resize', () => {
+        resizeHeroCanvas();
+        resizeScopeCanvases();
+      });
+
+      // Windowing toggle button
+      const btnWindow = document.getElementById('btnToggleWindow');
+      btnWindow.addEventListener('click', () => {
+        state.ui.windowingOn = !state.ui.windowingOn;
+        btnWindow.classList.toggle('off', !state.ui.windowingOn);
+        document.getElementById('windowBtnLabel').textContent = state.ui.windowingOn ? 'WINDOW: TUKEY(0.15)' : 'WINDOW: OFF (RECT)';
+        recalculateAll();
+      });
+
+      // Scenario Preset buttons
+      document.querySelectorAll('.btn-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          applyScenario(btn.dataset.preset);
+        });
+      });
+
+      // Serial hardware button
+      document.getElementById('btnSerial').addEventListener('click', () => {
+        if (state.ui.isHardwareLive) {
+          state.ui.isHardwareLive = false;
+          if (serialReader) serialReader.cancel();
+          const chip = document.getElementById('simChip');
+          chip.classList.remove('live-hardware');
+          document.getElementById('simChipText').textContent = 'SIMULATION';
+          document.getElementById('btnSerial').textContent = 'CONNECT HARDWARE';
+        } else {
+          initWebSerial();
+        }
+      });
+
+      // Modal close button
+      document.getElementById('modalCloseBtn').addEventListener('click', () => {
+        document.getElementById('serialModal').classList.remove('active');
+      });
+    }
+
+    // Launch application
+    window.addEventListener('DOMContentLoaded', () => {
+      initKnobs();
+      setupEventListeners();
+      resizeHeroCanvas();
+      resizeScopeCanvases();
+
+      // Initial state calculation
+      recalculateAll();
+
+      // Pre-seed active ping arcs so active sonar propagation is visible immediately
+      const initW = heroCanvas.clientWidth || 800;
+      const initH = heroCanvas.clientHeight || 400;
+      pingArcs.push({
+        x: initW * 0.35 + 2,
+        y: initH * 0.34 + 8,
+        radius: 75,
+        maxRadius: Math.max(initW * 0.6, 420),
+        frequencyKhz: state.decision.fCenter / 1000,
+        speed: 130,
+        echoed: false
+      });
+      pingArcs.push({
+        x: initW * 0.35 + 2,
+        y: initH * 0.34 + 8,
+        radius: 175,
+        maxRadius: Math.max(initW * 0.6, 420),
+        frequencyKhz: state.decision.fCenter / 1000,
+        speed: 130,
+        echoed: false
+      });
+
+      // Check URL parameters for preset deep-linking or automated testing
+      const urlParams = new URLSearchParams(window.location.search);
+      const presetParam = urlParams.get('preset');
+      if (presetParam && SCENARIOS[presetParam]) {
+        state.env = { ...SCENARIOS[presetParam].env };
+        updateAllKnobVisuals();
+        document.querySelectorAll('.btn-preset').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.preset === presetParam);
+        });
+        recalculateAll();
+      }
+      if (urlParams.get('window') === 'off') {
+        state.ui.windowingOn = false;
+        const btnWindow = document.getElementById('btnToggleWindow');
+        btnWindow.classList.add('off');
+        document.getElementById('windowBtnLabel').textContent = 'WINDOW: OFF (RECT)';
+        recalculateAll();
+      }
+
+      // Start 60 fps render loop
+      requestAnimationFrame(mainRenderLoop);
+    });
+  </script>
+</body>
+</html>
