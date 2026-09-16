@@ -240,10 +240,56 @@
       overflow-y: auto;
     }
 
+    .deck-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .deck-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1px 2px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      margin-bottom: 3px;
+    }
+
+    .badge-ps-core {
+      font-family: var(--font-mono);
+      font-size: 0.60rem;
+      font-weight: 800;
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.12);
+      border: 1px solid rgba(0, 240, 255, 0.35);
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.6px;
+    }
+
+    .badge-innovation {
+      font-family: var(--font-mono);
+      font-size: 0.60rem;
+      font-weight: 800;
+      color: var(--accent-mint);
+      background: rgba(0, 229, 163, 0.12);
+      border: 1px solid rgba(0, 229, 163, 0.35);
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.6px;
+    }
+
+    .deck-group-subtitle {
+      font-size: 0.56rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      letter-spacing: 0.4px;
+    }
+
     .knobs-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px 10px;
+      gap: 6px 8px;
     }
 
     .knob-container {
@@ -313,6 +359,49 @@
       color: var(--text-dim);
       padding: 0 4px;
       pointer-events: none;
+    }
+
+    .knob-threshold-tag {
+      font-family: var(--font-mono);
+      font-size: 0.54rem;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: 2px;
+      letter-spacing: 0.2px;
+      pointer-events: none;
+      white-space: nowrap;
+      transition: all 0.25s ease;
+    }
+
+    .threshold-amber {
+      color: var(--accent-amber);
+      background: rgba(255, 176, 0, 0.12);
+      border-color: rgba(255, 176, 0, 0.35);
+    }
+
+    .threshold-cyan {
+      color: var(--accent-cyan);
+      background: rgba(0, 240, 255, 0.10);
+      border-color: rgba(0, 240, 255, 0.25);
+    }
+
+    .threshold-active {
+      animation: pulse-tag 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse-tag {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.75; }
+    }
+
+    .knob-container.pwr-save-active {
+      border-color: var(--accent-amber) !important;
+      background: rgba(45, 30, 10, 0.6) !important;
+      box-shadow: 0 0 10px var(--accent-amber-glow);
     }
 
     /* Scenario Presets */
@@ -869,13 +958,26 @@
     <section class="panel">
       <div class="panel-header">
         <div class="panel-title">Control Deck</div>
-        <span style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-dim);">8 SENSORS</span>
+        <span style="font-family: var(--font-mono); font-size: 0.58rem; color: var(--accent-cyan); font-weight: 700;">4 PS + 4 INNOVATIONS</span>
       </div>
 
       <div class="control-deck-content">
-        <!-- 8 Potentiometers Grid -->
-        <div class="knobs-grid" id="knobsGrid">
-          <!-- Dynamically populated by initKnobs() -->
+        <!-- Group 1: Problem Statement Mandated Core Sensors (4) -->
+        <div class="deck-group">
+          <div class="deck-group-header">
+            <span class="badge-ps-core">PS CORE SENSORS (4)</span>
+            <span class="deck-group-subtitle">PS 26058 Mandate</span>
+          </div>
+          <div class="knobs-grid" id="knobsGridCore"></div>
+        </div>
+
+        <!-- Group 2: Team Innovations (4 Extra) -->
+        <div class="deck-group" style="margin-top: 4px;">
+          <div class="deck-group-header">
+            <span class="badge-innovation">TEAM INNOVATIONS (+4)</span>
+            <span class="deck-group-subtitle">Acoustic Link & Power</span>
+          </div>
+          <div class="knobs-grid" id="knobsGridExtra"></div>
         </div>
 
         <!-- Scenario Presets -->
@@ -947,7 +1049,7 @@
           </div>
           <div class="canvas-container">
             <div class="instrument-bezel-tags">
-              <span>SPAN: 200 kHz</span>
+              <span>SPAN: 600 kHz (100-500k)</span>
               <span>RADIX-2 1024pt</span>
             </div>
             <canvas id="fftCanvas"></canvas>
@@ -1142,23 +1244,23 @@
         turbidityNtu: 12     // 0 – 100 NTU
       },
       decision: {
-        corridor: 'BALANCED', // 'LONG-RANGE', 'BALANCED', 'HIGH-RES', 'POWER-SAVE', 'SAFE-FALLBACK'
+        corridor: 'BALANCED',
         waveform: 'LFM Chirp',
-        fCenter: 100000,
-        fStart: 92500,
-        fStop: 107500,
-        bandwidthHz: 15000,
-        durationMs: 1.00,
+        fCenter: 350000,
+        fStart: 323750,
+        fStop: 376250,
+        bandwidthHz: 52500,
+        durationMs: 0.95,
         amplitudePct: 78,
         clamped: { fStart: false, fStop: false, duration: false, amplitude: false }
       },
       derived: {
-        alphaSeawaterDbKm: 34.2,
+        alphaSeawaterDbKm: 88.0,
         alphaTurbidityDbKm: 2.8,
-        alphaTotalDbKm: 37.0,
+        alphaTotalDbKm: 90.8,
         soundSpeedMs: 1526,
-        resolutionCm: 5.0,
-        usableRangeM: 95,
+        resolutionCm: 1.5,
+        usableRangeM: 85,
         energyMj: 48.6,
         dopplerD: 0.38,
         dopplerStatus: 'D ≤ 0.8: Free, no correction needed',
@@ -1179,35 +1281,126 @@
       }
     };
 
-    /* Knob Configuration Schema */
+    /* Knob Configuration Schema: 4 PS Mandated Core + 4 Team Acoustic Innovations */
     const KNOB_DEFS = [
-      { id: 'depthM', label: 'Depth', min: 0, max: 200, step: 1, unit: 'm', precision: 0 },
-      { id: 'tempC', label: 'Temperature', min: 0, max: 30, step: 0.5, unit: '°C', precision: 1 },
-      { id: 'salinityPpt', label: 'Salinity', min: 25, max: 38, step: 0.1, unit: 'ppt', precision: 1 },
-      { id: 'noiseDb', label: 'Ambient Noise', min: 30, max: 80, step: 1, unit: 'dB', precision: 0 },
-      { id: 'targetRangeM', label: 'Target Range', min: 10, max: 200, step: 1, unit: 'm', precision: 0 },
-      { id: 'speedMs', label: 'Vehicle Speed', min: 0.0, max: 3.0, step: 0.1, unit: 'm/s', precision: 1 },
-      { id: 'batteryPct', label: 'Battery', min: 0, max: 100, step: 1, unit: '%', precision: 0 },
-      { id: 'turbidityNtu', label: 'Turbidity', min: 0, max: 100, step: 1, unit: 'NTU', precision: 0 }
+      // PS Mandated Core Sensors (4) - Ordered for maximum dynamic impact
+      { 
+        id: 'turbidityNtu', 
+        label: 'Turbidity', 
+        group: 'core', 
+        min: 0, 
+        max: 100, 
+        step: 1, 
+        unit: 'NTU', 
+        precision: 0,
+        thresholdTag: '>50 NTU: 100k MUDDY',
+        thresholdType: 'cyan'
+      },
+      { 
+        id: 'depthM', 
+        label: 'Water Depth', 
+        group: 'core', 
+        min: 0, 
+        max: 200, 
+        step: 1, 
+        unit: 'm', 
+        precision: 0,
+        thresholdTag: '>100m: 100k DEEP',
+        thresholdType: 'cyan'
+      },
+      { 
+        id: 'tempC', 
+        label: 'Temperature', 
+        group: 'core', 
+        min: 0, 
+        max: 30, 
+        step: 0.5, 
+        unit: '°C', 
+        precision: 1,
+        thresholdTag: 'Δα THERMAL LOSS',
+        thresholdType: 'cyan'
+      },
+      { 
+        id: 'salinityPpt', 
+        label: 'Salinity', 
+        group: 'core', 
+        min: 25, 
+        max: 38, 
+        step: 0.1, 
+        unit: 'ppt', 
+        precision: 1,
+        thresholdTag: '<30 ppt: ESTUARY',
+        thresholdType: 'cyan'
+      },
+
+      // Team Acoustic Innovations (+4 Extra)
+      { 
+        id: 'batteryPct', 
+        label: 'Battery State', 
+        group: 'extra', 
+        min: 0, 
+        max: 100, 
+        step: 1, 
+        unit: '%', 
+        precision: 0,
+        thresholdTag: '≤20% PWR-SAVE',
+        thresholdType: 'amber'
+      },
+      { 
+        id: 'targetRangeM', 
+        label: 'Target Range', 
+        group: 'extra', 
+        min: 10, 
+        max: 200, 
+        step: 1, 
+        unit: 'm', 
+        precision: 0,
+        thresholdTag: '>110m: 100k RANGE',
+        thresholdType: 'cyan'
+      },
+      { 
+        id: 'speedMs', 
+        label: 'Vehicle Speed', 
+        group: 'extra', 
+        min: 0.0, 
+        max: 3.0, 
+        step: 0.1, 
+        unit: 'm/s', 
+        precision: 1,
+        thresholdTag: '>2.0 m/s: HFM CHIRP',
+        thresholdType: 'cyan'
+      },
+      { 
+        id: 'noiseDb', 
+        label: 'Ambient Noise', 
+        group: 'extra', 
+        min: 30, 
+        max: 80, 
+        step: 1, 
+        unit: 'dB', 
+        precision: 0,
+        thresholdTag: '>65 dB: TX BOOST',
+        thresholdType: 'cyan'
+      }
     ];
 
     /* Scenario Configurations (§4.1) */
     const SCENARIOS = {
       muddy: {
         name: 'Muddy Estuary',
-        env: { depthM: 14, tempC: 28.0, salinityPpt: 26.0, noiseDb: 58, targetRangeM: 40, speedMs: 1.1, batteryPct: 82, turbidityNtu: 88 }
+        env: { turbidityNtu: 90, depthM: 18, tempC: 28.0, salinityPpt: 26.0, noiseDb: 62, targetRangeM: 85, speedMs: 1.1, batteryPct: 82 }
       },
       reef: {
         name: 'Clear Shallow Reef',
-        env: { depthM: 18, tempC: 26.5, salinityPpt: 35.2, noiseDb: 42, targetRangeM: 48, speedMs: 1.4, batteryPct: 92, turbidityNtu: 3 }
+        env: { turbidityNtu: 2, depthM: 12, tempC: 26.5, salinityPpt: 35.2, noiseDb: 40, targetRangeM: 28, speedMs: 1.4, batteryPct: 95 }
       },
       deep: {
         name: 'Deep Cold Water',
-        env: { depthM: 185, tempC: 5.2, salinityPpt: 35.0, noiseDb: 38, targetRangeM: 165, speedMs: 1.5, batteryPct: 76, turbidityNtu: 6 }
+        env: { turbidityNtu: 6, depthM: 185, tempC: 4.8, salinityPpt: 35.0, noiseDb: 38, targetRangeM: 170, speedMs: 1.5, batteryPct: 76 }
       },
       lowbatt: {
         name: 'Low Battery Transit',
-        env: { depthM: 45, tempC: 18.0, salinityPpt: 34.5, noiseDb: 44, targetRangeM: 70, speedMs: 0.9, batteryPct: 14, turbidityNtu: 18 }
+        env: { turbidityNtu: 18, depthM: 45, tempC: 18.0, salinityPpt: 34.5, noiseDb: 44, targetRangeM: 70, speedMs: 0.9, batteryPct: 14 }
       }
     };
 
@@ -1222,15 +1415,15 @@
              1.025e-2 * T * (S - 35) - 7.139e-13 * T * D * D * D;
     }
 
-    /* Tabulated Francois-Garrison (1982) Reference Grid across 50–160 kHz */
+    /* Tabulated Francois-Garrison (1982) Reference Grid across 50–500 kHz */
     // Tabulated alpha values in dB/km at standard baseline (10°C, 35 ppt, 50m depth)
-    const FG_GRID_FREQ = [50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
-    const FG_GRID_ALPHA = [12.8, 17.1, 21.8, 26.2, 30.4, 34.2, 37.8, 41.0, 43.8, 46.2, 48.5, 50.8];
+    const FG_GRID_FREQ = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500];
+    const FG_GRID_ALPHA = [12.8, 34.2, 48.5, 61.0, 74.5, 88.0, 102.0, 116.0, 129.5, 143.0];
 
     function computeFrancoisGarrisonAbsorption(fKhz, T, S, D) {
       // 1. Interpolate baseline from validated Francois-Garrison lookup table (§5)
-      let baseAlpha = 34.2;
-      const f = Math.max(50, Math.min(160, fKhz));
+      let baseAlpha = 88.0;
+      const f = Math.max(50, Math.min(500, fKhz));
       if (f <= FG_GRID_FREQ[0]) {
         baseAlpha = FG_GRID_ALPHA[0];
       } else if (f >= FG_GRID_FREQ[FG_GRID_FREQ.length - 1]) {
@@ -1261,13 +1454,13 @@
     function computeTurbidityScattering(turbidityNtu, fKhz) {
       // Thorne & Hanes (2002) sediment scattering approximation
       if (turbidityNtu <= 0) return 0;
-      // Scales with turbidity and frequency: ~0.18 dB/km per NTU at 100 kHz
-      return 0.18 * turbidityNtu * Math.pow(fKhz / 100.0, 1.35);
+      // Scales with turbidity and frequency: ~0.18 dB/km per NTU at 100 kHz, scaling as f^1.25
+      return 0.18 * turbidityNtu * Math.pow(fKhz / 100.0, 1.25);
     }
 
     /* --------------------------------------------------------------------------
        3. EWA ADAPTATION LOGIC (§9 & §8)
-       Continuous parameter generation + Corridor Clamping
+       Continuous parameter generation + Corridor Clamping (100 kHz - 500 kHz)
        -------------------------------------------------------------------------- */
     function computeDecision(env) {
       const clamped = { fStart: false, fStop: false, duration: false, amplitude: false };
@@ -1279,14 +1472,14 @@
       // Impossible link geometry: extreme distance + noise + turbidity
       const isImpossibleLink = (env.targetRangeM > 175 && env.turbidityNtu > 75 && env.noiseDb > 68);
 
-      let fCenter = 100000;
-      let durationMs = 1.0;
+      let fCenter = 300000;
+      let durationMs = 0.95;
       let amplitudePct = 80;
 
       if (isImpossibleLink) {
-        // SAFE-FALLBACK: known-safe robust pulse
+        // SAFE-FALLBACK: known-safe robust pulse at low frequency
         corridor = 'SAFE-FALLBACK';
-        fCenter = 70000;
+        fCenter = 100000; // Low frequency 100 kHz
         durationMs = 2.0;
         amplitudePct = 95;
         clamped.fStart = true;
@@ -1294,40 +1487,45 @@
         clamped.duration = true;
         clamped.amplitude = true;
       } else if (isPowerSave) {
-        // POWER-SAVE: cap amplitude and limit pulse duration
+        // POWER-SAVE: locked to power-conservative 150 kHz pulse, clamped amplitude & duration
         corridor = 'POWER-SAVE';
-        fCenter = 95000;
-        durationMs = 0.65;
-        amplitudePct = Math.min(45, Math.max(25, Math.round(env.targetRangeM * 0.35)));
+        fCenter = 150000;
+        durationMs = 0.60;
+        amplitudePct = Math.min(35, Math.max(20, Math.round(env.targetRangeM * 0.25)));
         clamped.amplitude = true;
+        clamped.duration = true;
       } else {
-        // Standard corridors: continuous mapping
-        // High turbidity or long range drives frequency down toward 70 kHz
-        // Clear water and short range drives frequency up toward 140 kHz
-        const penetrationDemand = (env.targetRangeM / 200) * 0.55 + (env.turbidityNtu / 100) * 0.45;
-        
-        // Continuous fCenter from 140 kHz down to 70 kHz
-        fCenter = Math.round(140000 - penetrationDemand * 70000);
-        // Step to neat 500 Hz
-        fCenter = Math.round(fCenter / 500) * 500;
+        // Standard corridors: continuous acoustic mapping across 100 kHz to 500 kHz
+        // High authority on PS Core Sensors: Depth (35%) and Turbidity (40%), plus Target Range (25%)
+        const depthFactor = env.depthM / 200.0;
+        const turbFactor = env.turbidityNtu / 100.0;
+        const rangeFactor = env.targetRangeM / 200.0;
 
-        if (fCenter < 82000) {
+        // In clear shallow water with short target range, demand -> 0 (500 kHz High-Res)
+        // In deep, muddy water or long target range, demand -> 1 (100 kHz Long-Range)
+        const penetrationDemand = Math.min(1.0, depthFactor * 0.35 + turbFactor * 0.40 + rangeFactor * 0.25);
+        
+        // Continuous fCenter smoothly sweeping 500 kHz down to 100 kHz
+        fCenter = Math.round(500000 - penetrationDemand * 400000);
+        // Quantize to clean 2.5 kHz step
+        fCenter = Math.round(fCenter / 2500) * 2500;
+
+        if (fCenter <= 180000) {
           corridor = 'LONG-RANGE';
-        } else if (fCenter > 120000) {
+        } else if (fCenter >= 380000) {
           corridor = 'HIGH-RES';
         } else {
           corridor = 'BALANCED';
         }
 
-        // Duration scales with range (needs more pulse energy for SNR)
-        durationMs = 0.70 + (env.targetRangeM / 200) * 1.1;
+        // Pulse duration scales with range & acoustic demand (needs more energy for long paths)
+        durationMs = 0.60 + (env.targetRangeM / 200.0) * 1.20;
         durationMs = Math.round(durationMs * 20) / 20; // 0.05ms steps
 
         // Active Sonar Equation Amplitude
-        // Transmission loss + noise floor
         const noiseFactor = Math.pow(10, (env.noiseDb - 50) / 40);
-        const rangeFactor = Math.pow(env.targetRangeM / 100, 1.2);
-        amplitudePct = Math.round(40 + 35 * rangeFactor * noiseFactor);
+        const rangeFactorTL = Math.pow(env.targetRangeM / 100, 1.2);
+        amplitudePct = Math.round(40 + 35 * rangeFactorTL * noiseFactor);
         if (amplitudePct > 100) {
           amplitudePct = 100;
           clamped.amplitude = true;
@@ -1335,14 +1533,14 @@
         if (amplitudePct < 30) amplitudePct = 30;
       }
 
-      // Fractional bandwidth is 15% of centre frequency (matches §5.2 piezo transducer resonance)
+      // Fractional bandwidth is 15% of centre frequency (piezo transducer resonance)
       const bandwidthHz = Math.round(fCenter * 0.15);
       let fStart = Math.round(fCenter - bandwidthHz / 2);
       let fStop = Math.round(fCenter + bandwidthHz / 2);
 
-      // Hard limits for internal DAC (STM32 ~1 MSPS, safe between 60 kHz and 155 kHz)
-      if (fStart < 62000) { fStart = 62000; clamped.fStart = true; }
-      if (fStop > 155000) { fStop = 155000; clamped.fStop = true; }
+      // Clamping to hardware physical limits (85 kHz - 545 kHz)
+      if (fStart < 85000) { fStart = 85000; clamped.fStart = true; }
+      if (fStop > 545000) { fStop = 545000; clamped.fStop = true; }
 
       return {
         corridor,
@@ -1460,9 +1658,12 @@
 
       const fStart = decision.fStart;
       const fStop = decision.fStop;
-      const tau = decision.durationMs / 1000.0;
       const amp = decision.amplitudePct / 100.0;
-      const k = (fStop - fStart) / tau;
+      
+      // Fixed virtual sampling rate: 1.5 MSPS (Nyquist 750 kHz > 545 kHz max acoustic carrier)
+      const fs = 1500000;
+      const Tfft = N / fs; // ~0.6827 ms
+      const k = (fStop - fStart) / Tfft;
 
       // Real arrays for Radix-2 FFT
       const real = new Float32Array(N);
@@ -1473,7 +1674,7 @@
       const nTaper = Math.floor(alphaTukey * N);
 
       for (let i = 0; i < N; i++) {
-        const t = (i / N) * tau;
+        const t = i / fs;
         // Synthesise exact instantaneous phase: 2*pi*(f_start*t + 0.5*k*t^2)
         const phase = 2 * Math.PI * (fStart * t + 0.5 * k * t * t);
         const rawSine = Math.sin(phase);
@@ -1574,10 +1775,15 @@
        6. DOM UPDATES & KNOB CONTROLLER (§4.1)
        -------------------------------------------------------------------------- */
     function initKnobs() {
-      const grid = document.getElementById('knobsGrid');
-      grid.innerHTML = '';
+      const gridCore = document.getElementById('knobsGridCore');
+      const gridExtra = document.getElementById('knobsGridExtra');
+      if (gridCore) gridCore.innerHTML = '';
+      if (gridExtra) gridExtra.innerHTML = '';
 
       KNOB_DEFS.forEach(def => {
+        const targetGrid = def.group === 'core' ? gridCore : gridExtra;
+        if (!targetGrid) return;
+
         const wrap = document.createElement('div');
         wrap.className = 'knob-container';
         wrap.id = `knob-${def.id}`;
@@ -1590,8 +1796,12 @@
             <svg viewBox="0 0 60 60" width="100%" height="100%">
               <!-- Track background -->
               <circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4" stroke-dasharray="103.6" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(135 30 30)" />
+              ${def.id === 'batteryPct' ? `
+                <!-- Danger threshold zone: 0% to 20% on 270deg arc (0.20 * 103.65 = 20.73) -->
+                <circle cx="30" cy="30" r="22" fill="none" stroke="rgba(255,176,0,0.45)" stroke-width="4" stroke-dasharray="20.7 103.6" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(135 30 30)" />
+              ` : ''}
               <!-- Dynamic value track -->
-              <circle id="track-${def.id}" cx="30" cy="30" r="22" fill="none" stroke="var(--accent-cyan)" stroke-width="4" stroke-dasharray="103.6" stroke-dashoffset="40" stroke-linecap="round" transform="rotate(135 30 30)" />
+              <circle id="track-${def.id}" cx="30" cy="30" r="22" fill="none" stroke="${def.thresholdType === 'amber' && state.env[def.id] <= 20 ? 'var(--accent-amber)' : 'var(--accent-cyan)'}" stroke-width="4" stroke-dasharray="103.6" stroke-dashoffset="40" stroke-linecap="round" transform="rotate(135 30 30)" />
               <!-- Dial center body -->
               <circle cx="30" cy="30" r="17" fill="#121a2d" stroke="rgba(0,240,255,0.25)" stroke-width="1.5" />
               <!-- Pointer indicator -->
@@ -1601,6 +1811,9 @@
           <div class="knob-value-row">
             <span class="knob-value tabular-num" id="val-${def.id}">0</span>
             <span class="knob-unit">${def.unit}</span>
+          </div>
+          <div class="knob-threshold-tag ${def.thresholdType === 'amber' ? 'threshold-amber' : 'threshold-cyan'}" id="tag-${def.id}">
+            ${def.thresholdTag}
           </div>
           <div class="knob-minmax">
             <span>${def.min}</span>
@@ -1681,7 +1894,7 @@
           }
         });
 
-        grid.appendChild(wrap);
+        targetGrid.appendChild(wrap);
         updateKnobVisual(def.id);
       });
     }
@@ -1696,6 +1909,8 @@
 
       const track = document.getElementById(`track-${id}`);
       const pointer = document.getElementById(`pointer-${id}`);
+      const wrap = document.getElementById(`knob-${id}`);
+      const tag = document.getElementById(`tag-${id}`);
       if (!track || !pointer) return;
 
       // Map range to -135deg to +135deg (270deg total)
@@ -1709,15 +1924,33 @@
       const dashoffset = maxDash * (1 - fraction);
       track.style.strokeDashoffset = dashoffset.toFixed(1);
 
-      // Battery warning color
+      // Threshold trigger detection & visual highlighting
+      let isThresholdHit = false;
       if (id === 'batteryPct') {
-        if (val <= 20) {
+        isThresholdHit = val <= 20;
+        if (isThresholdHit) {
           track.style.stroke = 'var(--accent-amber)';
           pointer.style.stroke = 'var(--accent-amber)';
+          if (wrap) wrap.classList.add('pwr-save-active');
         } else {
           track.style.stroke = 'var(--accent-cyan)';
           pointer.style.stroke = 'var(--accent-cyan)';
+          if (wrap) wrap.classList.remove('pwr-save-active');
         }
+      } else if (id === 'turbidityNtu') {
+        isThresholdHit = val > 50;
+      } else if (id === 'depthM') {
+        isThresholdHit = val > 100;
+      } else if (id === 'speedMs') {
+        isThresholdHit = val > 2.0;
+      } else if (id === 'noiseDb') {
+        isThresholdHit = val > 65;
+      } else if (id === 'targetRangeM') {
+        isThresholdHit = val > 110;
+      }
+
+      if (tag) {
+        tag.classList.toggle('threshold-active', isThresholdHit);
       }
     }
 
@@ -1793,20 +2026,20 @@
       if (decision.corridor === 'POWER-SAVE') {
         banner.classList.add('corridor-power-save');
         nameEl.textContent = 'POWER-SAVE';
-        descEl.textContent = 'Conserving vehicle battery. Amplitude ceiling clamped at 45%, pulse shortened to 0.65ms.';
+        descEl.textContent = 'Conserving vehicle battery (≤20%). Amplitude clamped at 35%, pulse shortened to 0.60ms.';
       } else if (decision.corridor === 'SAFE-FALLBACK') {
         banner.classList.add('corridor-safe-fallback');
         nameEl.textContent = 'SAFE-FALLBACK';
-        descEl.textContent = 'Severe link margin failure in extreme noise/turbidity. Locked to safe 70 kHz baseline.';
+        descEl.textContent = 'Severe acoustic link stress. Failsafe fallback to maximum-penetration 100 kHz carrier.';
       } else if (decision.corridor === 'LONG-RANGE') {
         nameEl.textContent = 'LONG-RANGE';
-        descEl.textContent = 'Penetrating 70 kHz carrier with 10.5 kHz sweep. Minimises high seawater & sediment attenuation.';
+        descEl.textContent = 'Penetrating 100 kHz carrier with 15 kHz sweep. Minimises high seawater & sediment attenuation.';
       } else if (decision.corridor === 'HIGH-RES') {
         nameEl.textContent = 'HIGH-RES';
-        descEl.textContent = 'Sharp 140 kHz carrier with 21 kHz sweep. Yields fine 3.6 cm resolution in clear shallow waters.';
+        descEl.textContent = 'Sharp 500 kHz carrier with 75 kHz sweep. Yields fine 1.0 cm resolution in clear shallow waters.';
       } else {
         nameEl.textContent = 'BALANCED';
-        descEl.textContent = 'Standard wideband chirp balancing acoustic penetration with 5.0 cm range resolution.';
+        descEl.textContent = 'Wideband 250–300 kHz chirp balancing acoustic penetration with 2.0 cm range resolution.';
       }
 
       // 2. Transmit Parameters
@@ -2114,9 +2347,9 @@
         }
 
         // Color and thickness mapped to frequency:
-        // 140 kHz: tight, electric cyan (#00f0ff)
-        // 70 kHz: broader, warmer amber/gold (#ffaa33)
-        const freqRatio = (ping.frequencyKhz - 70) / (140 - 70);
+        // 500 kHz: tight, electric cyan (#00f0ff)
+        // 100 kHz: broader, warmer amber/gold (#ffaa33)
+        const freqRatio = Math.max(0, Math.min(1.0, (ping.frequencyKhz - 100) / (500 - 100)));
         const arcR = Math.round(255 - freqRatio * 255);
         const arcG = Math.round(170 + freqRatio * 70);
         const arcB = Math.round(60 + freqRatio * 195);
@@ -2129,7 +2362,7 @@
         // §4.2: Internal ripple density <-> chirp sweeping through frequency range
         const startAngle = Math.PI * 0.15;
         const endAngle = Math.PI * 0.65;
-        const rippleSpacing = 6.5 - freqRatio * 3.5; // Tighter ripples at high frequency (140kHz), wider at low (70kHz)
+        const rippleSpacing = 7.0 - freqRatio * 4.5; // Tighter ripples at high frequency (500kHz), wider at low (100kHz)
 
         for (let rip = -1; rip <= 1; rip++) {
           const rRip = ping.radius + rip * rippleSpacing;
@@ -2235,12 +2468,14 @@
         ctx.fillText('-60 dB', 4, h * 0.75 + 3);
         ctx.fillText('-80 dB', 4, h - 5);
 
-        // Frequency scale labels on bottom
+        // Frequency scale labels on bottom (0 to 600 kHz)
         ctx.fillText('0', 25, h - 5);
-        ctx.fillText('50k', w * 0.25 - 8, h - 5);
-        ctx.fillText('100k', w * 0.50 - 10, h - 5);
-        ctx.fillText('150k', w * 0.75 - 10, h - 5);
-        ctx.fillText('200 kHz', w - 46, h - 5);
+        ctx.fillText('100k', (w * (1 / 6)) - 12, h - 5);
+        ctx.fillText('200k', (w * (2 / 6)) - 12, h - 5);
+        ctx.fillText('300k', (w * (3 / 6)) - 12, h - 5);
+        ctx.fillText('400k', (w * (4 / 6)) - 12, h - 5);
+        ctx.fillText('500k', (w * (5 / 6)) - 12, h - 5);
+        ctx.fillText('600 kHz', w - 46, h - 5);
       }
     }
 
@@ -2306,10 +2541,10 @@
       drawInstrumentGraticule(fftCtx, w, h, true);
 
       const fftDb = state.dsp.fftDb;
-      const numBins = fftDb.length; // 512 bins (up to Nyquist = ~512 kHz)
-      // Display span: 0 to 200 kHz
-      const maxDisplayFreq = 200000;
-      const fs = 1024 / (state.decision.durationMs / 1000.0);
+      const numBins = fftDb.length; // 512 bins (up to Nyquist = 750 kHz)
+      // Display span: 0 to 600 kHz (matches 100 kHz - 500 kHz active sonar regime)
+      const maxDisplayFreq = 600000;
+      const fs = 1500000; // 1.5 MSPS
       const binHz = fs / 1024;
       const maxBin = Math.min(numBins - 1, Math.floor(maxDisplayFreq / binHz));
 
