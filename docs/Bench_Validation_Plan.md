@@ -53,9 +53,13 @@ This plan establishes experimental procedures to answer **four core engineering 
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Physical Bench Hardware Evidence
+### Physical Bench Hardware Evidence (Aplab D37000A 200MHz DSO Captures)
 
-| Measured Oscilloscope Output (Aplab D37000A) | Hardware Qualification Sequence Flow |
+| Linear Frequency Modulated (LFM) Chirp | Hyperbolic Frequency Modulation (HFM) | Barker-13 Biphase Modulated Pulse |
+| :---: | :---: | :---: |
+| <img src="images/aplab_dso_lfm_chirp_sweep.jpg" alt="LFM Chirp DSO" width="310"/><br>*(LFM Chirp: $70 \to 140\text{ kHz}$, Blackman window, Bandwidth $= 70\text{ kHz}$, $\tau = 2.00\text{ ms}$)* | <img src="images/aplab_dso_hfm_geometric_sweep.jpg" alt="HFM Sweep DSO" width="310"/><br>*(HFM Geometric Sweep: $70 \to 140\text{ kHz}$, Hamming window, Doppler invariant, $\tau = 2.00\text{ ms}$)* | <img src="images/aplab_dso_barker13_phase_coded.jpg" alt="Barker-13 DSO" width="310"/><br>*(Barker-13: $f_c = 100\text{ kHz}$, 13 chips, $\tau = 260\,\mu\text{s}$, sidelobes $\approx -13.2\text{ dB}$)* |
+
+| Measured Dual-Channel Wideband Capture | Hardware Qualification Sequence Flow |
 | :---: | :---: |
 | <img src="images/dso_waveform_measurement.png" alt="Aplab D37000A DSO" width="460"/><br>*(Dual-channel DSO capture: 100–500 kHz wideband time & FFT envelope)* | <img src="images/qualification_flow.png" alt="Qualification Flow" width="460"/><br>*(Hardware qualification flow: Material Traceability → Leak Test → Bench DSO → Tank Trials)* |
 

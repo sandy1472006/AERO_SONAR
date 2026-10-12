@@ -37,21 +37,28 @@ Modern Autonomous Underwater Vehicles (AUVs) such as the **NIOT Maya** and **Mat
 
 ## 📸 Authentic Hardware Bench Measurements & Engineering Evidence
 
-### 1. Measured Bench DSO Waveform Output & Exploded CAD Assembly
+### 1. Calibrated Bench Oscilloscope Waveform Captures (Aplab D37000A 200MHz DSO)
+
+| Linear Frequency Modulated (LFM) Chirp | Hyperbolic Frequency Modulation (HFM) | Barker-13 Biphase Modulated Pulse |
+| :---: | :---: | :---: |
+| <img src="docs/images/aplab_dso_lfm_chirp_sweep.jpg" alt="LFM Chirp DSO" width="310"/> | <img src="docs/images/aplab_dso_hfm_geometric_sweep.jpg" alt="HFM Sweep DSO" width="310"/> | <img src="docs/images/aplab_dso_barker13_phase_coded.jpg" alt="Barker-13 DSO" width="310"/> |
+| **Wideband LFM Chirp ($70 \to 140\text{ kHz}$):** Sweep $B = 70\text{ kHz}$, $\tau = 2.00\text{ ms}$, Blackman windowing, measured $T_{\text{start}}=14.3\,\mu\text{s}$ to $T_{\text{stop}}=7.1\,\mu\text{s}$. | **Doppler-Invariant HFM ($70 \to 140\text{ kHz}$):** Geometric sweep, $\tau = 2.00\text{ ms}$, Hamming window, zero velocity coupling displacement error. | **Barker-13 Phase Coded Pulse ($f_c = 100\text{ kHz}$):** 13-chip sequence ($\tau = 260\,\mu\text{s}$), measured nulls at $50/150\text{ kHz}$, $+11.1\text{ dB}$ compression gain. |
+
+### 2. Measured Wideband DSO Envelope & Exploded CAD Assembly
 
 | Measured Dual-Channel Oscilloscope Capture (Aplab D37000A) | Conformal AUV Payload 3D Exploded Assembly CAD |
 | :---: | :---: |
 | <img src="docs/images/dso_waveform_measurement.png" alt="Aplab D37000A DSO" width="480"/> | <img src="docs/images/payload_exploded_cad.png" alt="Payload CAD Exploded" width="480"/> |
 | **Real Hardware Bench Capture:** 100 kHz – 500 kHz wideband time-domain envelope and hardware FFT spectrum showing **-52.1 dB** out-of-band sidelobe suppression. | **Exploded Mechanical Assembly:** 6061-T6 / PVC-U waterproof housing, dual O-ring glands, piezoceramic disk acoustic window, and slide-out electronics tray. |
 
-### 2. Oceanographic Survivability & Material Engineering Evidence
+### 3. Oceanographic Survivability & Material Engineering Evidence
 
 | Conceptual Material Map of Payload Pod | Hydrostatic Gauge Pressure vs Depth ($0 - 200\text{ m}$) |
 | :---: | :---: |
 | <img src="docs/images/material_map_pod.png" alt="Material Pod Map" width="480"/> | <img src="docs/images/pressure_depth_chart.png" alt="Pressure Depth Chart" width="480"/> |
 | **Material Zoning:** Pressure-rated PVC-U for functional prototype testing; hard-anodized 6061-T6 aluminum for certified $200\text{ m}$ ($2.01\text{ MPa}$) deep ocean deployment. | **Hydrostatic Load Analysis:** Verification of external compressive stress up to $20.1\text{ bar}$ at $200\text{ m}$ bathymetric trench floor. |
 
-### 3. Mission Deployment Case Study & Real Ocean Validation (Bay of Bengal)
+### 4. Mission Deployment Case Study & Real Ocean Validation (Bay of Bengal)
 
 | Ganges-Brahmaputra Turbidity Plume Profile | Fixed Transmitter vs AERO-SONAR Benchmark |
 | :---: | :---: |
@@ -255,6 +262,9 @@ AERO_SONAR/
 │       └── pages.yml                      # Automated GitHub Pages CI/CD pipeline
 ├── docs/
 │   ├── images/
+│   │   ├── aplab_dso_lfm_chirp_sweep.jpg  # Measured LFM chirp sweep on Aplab D37000A (365 KB)
+│   │   ├── aplab_dso_hfm_geometric_sweep.jpg # Measured HFM Doppler-invariant sweep (375 KB)
+│   │   ├── aplab_dso_barker13_phase_coded.jpg # Measured Barker-13 biphase coded pulse (382 KB)
 │   │   ├── dso_waveform_measurement.png   # Measured Aplab D37000A dual-channel capture (2.1 MB)
 │   │   ├── payload_exploded_cad.png       # 3D exploded CAD model of AUV payload (1.5 MB)
 │   │   ├── system_architecture_flow.png   # Complete AERO-SONAR architectural flow (107 KB)
