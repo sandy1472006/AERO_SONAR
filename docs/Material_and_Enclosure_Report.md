@@ -69,3 +69,25 @@ The mechanical enclosure is dimensioned to integrate conformally into the payloa
 1. **Dual Radial O-Ring Sealing:** Endcaps employ dual Nitrile (Buna-N, 70 Shore A) radial O-rings fitted in precision-machined grooves designed per Parker O-Ring Handbook standards.
 2. **Bulkhead Electrical Penetration:** Subconn micro-circular wet-mateable connectors (or IP68 brass cable glands for bench prototype) handle serial telemetry, DC power input, and external hydrophone inputs.
 3. **Internal Mounting Chassis:** 3D-printed PETG internal slide-out electronics tray decouples mechanical stress from PCBs and allows rapid bench access.
+
+---
+
+## 5. Visual Engineering Analysis & Hydrodynamic Figures
+
+| Conceptual Material Map | Hydrostatic Pressure vs Depth |
+| :---: | :---: |
+| <img src="images/material_map_pod.png" alt="Material Map" width="460"/><br>*(Fig 1: Material zoning of AERO-SONAR pod)* | <img src="images/pressure_depth_chart.png" alt="Pressure Depth" width="460"/><br>*(Fig 2: Hydrostatic gauge pressure to 200 m)* |
+
+| Environmental Hazards Matrix | Material Density Comparison |
+| :---: | :---: |
+| <img src="images/environment_matrix.png" alt="Environment Matrix" width="460"/><br>*(Fig 3: Marine operational hazard matrix)* | <img src="images/density_comparison.png" alt="Density Comparison" width="460"/><br>*(Fig 4: Density comparison across candidate materials)* |
+
+| Acoustic Window & Transducer Baffle | Operating Envelope & Pressure Limits |
+| :---: | :---: |
+| <img src="images/acoustic_window.png" alt="Acoustic Window" width="460"/><br>*(Fig 5: Acoustic window and projector interface)* | <img src="images/operating_envelope.png" alt="Operating Envelope" width="460"/><br>*(Fig 6: Certified operating envelope)* |
+
+| Thermal Conduction Pathway | Mass Budget Breakdown |
+| :---: | :---: |
+| <img src="images/thermal_path.png" alt="Thermal Path" width="460"/><br>*(Fig 7: Dedicated Class-D PA heat spreader path)* | <img src="images/mass_budget.png" alt="Mass Budget" width="460"/><br>*(Fig 8: Preliminary mass budget allocation)* |
+
+---

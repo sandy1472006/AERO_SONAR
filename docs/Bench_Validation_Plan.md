@@ -55,11 +55,9 @@ This plan establishes experimental procedures to answer **four core engineering 
 
 ### Physical Bench Hardware Evidence
 
-| Measured Sonar Waveforms (Rigol DS1054Z) | Measured Signal Chain Current (DMM Bench) |
+| Measured Oscilloscope Output (Aplab D37000A) | Hardware Qualification Sequence Flow |
 | :---: | :---: |
-| <img src="images/lfm.jpeg" alt="LFM Chirp DSO" width="380"/><br>*(LFM Chirp: Continuous sweep through bandwidth with Tukey taper)* | <img src="images/dmm_high.png" alt="DMM High Power" width="380"/><br>*(Digital Multimeter verifying 3.3V bus current: 2.44 mA baseline)* |
-| <img src="images/barker-13.jpeg" alt="Barker-13 DSO" width="380"/><br>*(Barker-13: 13-chip biphase modulated pulse compression)* | <img src="images/power_varada.png" alt="Power Validation Setup" width="380"/><br>*(Bench test setup under calibrated DC supply conditions)* |
-| <img src="images/cw.jpeg" alt="CW Signal DSO" width="380"/><br>*(Continuous Wave: Narrowband Doppler reference carrier)* | <img src="images/dso_waveform_measurement.png" alt="Aplab D37000A DSO" width="380"/><br>*(Dual-channel DSO: 100-500 kHz wideband time & FFT envelope)* |
+| <img src="images/dso_waveform_measurement.png" alt="Aplab D37000A DSO" width="460"/><br>*(Dual-channel DSO capture: 100–500 kHz wideband time & FFT envelope)* | <img src="images/qualification_flow.png" alt="Qualification Flow" width="460"/><br>*(Hardware qualification flow: Material Traceability → Leak Test → Bench DSO → Tank Trials)* |
 
 ---
 
